@@ -17,12 +17,12 @@ class ProducerClient:
         conf = {'bootstrap.servers': config.BOOTSTRAP_SERVER}
         self._producer = Producer(**conf)
         consumer_conf = {'bootstrap.servers': config.BOOTSTRAP_SERVER, 'session.timeout.ms': 6000,
-            'auto.offset.reset': 'earliest'}
+            'auto.offset.reset': 'earliest', 'group.id': 1001,}
         self._consumer =  Consumer(consumer_conf)
 
-    @profile(logger=logger)
+    @profile(logger)
     def submit_job(self, job):
-        
+        logger.debug("submit job start " + str(job.jobid))
         def delivery_callback(err, msg):
             if err:
                 print("{0} deliver error: {1}".format(msg, err))
@@ -35,10 +35,10 @@ class ProducerClient:
             except BufferError:
                 logger.debug('%% Local producer queue is full (%d messages awaiting delivery): try again\n' %
                                 len(self._producer))
-        self._producer.poll(0)
+            self._producer.poll(0)
 
         logger.debug('%% Waiting for %d deliveries\n' % len(self._producer))
-        self._producer.flush()
+        self._producer.flush(1)
     
     @profile(logger=logger)
     def monitor_job(self, job):
@@ -57,5 +57,16 @@ class ProducerClient:
 
         
 
+if __name__ == "__main__":
+    from job import Job, Task
 
+    def main_producer():
+        job = Job(config.JOB_ID)
+        for i in range(config.TASK_NUM):
+            job.tasks.append(Task(i))
+        
+        p = ProducerClient()
+        p.submit_job(job)
+
+    main_producer()
 

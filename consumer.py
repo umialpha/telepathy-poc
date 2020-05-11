@@ -42,7 +42,7 @@ class ConsumerClient:
 
     def __init__(self):
         conf = {'bootstrap.servers': config.BOOTSTRAP_SERVER, 'session.timeout.ms': 6000,
-            'auto.offset.reset': 'earliest'}
+            'auto.offset.reset': 'earliest', 'group.id': 1001,}
         self._consumer =  Consumer(conf)
         self._workers = []
         self._init_workers()
@@ -56,6 +56,7 @@ class ConsumerClient:
 
     @profile(logger=logger)
     def consume(self, topics):
+        logger.debug("start to consume {}".format(topics))
         self._consumer.subscribe(topics)
         while True:
             msg = self._consumer.poll(timeout=1.0)
@@ -81,5 +82,14 @@ class ConsumerClient:
         if not self._workers:
             return None
         return random_pick(self._workers)
+
+
+if __name__ == "__main__":
+
+    def main_consumer():
+        consumer = ConsumerClient()
+        consumer.consume([config.JOB_SUBMIT_TOPIC + str(config.JOB_ID)])
+    
+    main_consumer()
 
     

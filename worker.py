@@ -22,7 +22,8 @@ def serve(port):
 
 
 if __name__ == '__main__':
-    serve(5003)
+    import sys
+    serve(sys.argv[1])
 
 
 

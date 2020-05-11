@@ -6,8 +6,8 @@ import grpc
 from concurrent import futures
 
 from confluent_kafka import Consumer, KafkaException, Producer
-import worker_pb2_grpc 
-import worker_pb2
+import rpc.worker_pb2_grpc as worker_pb2_grpc
+import rpc.worker_pb2 as worker_pb2
 import config
 
 TASK_RUNNING_TIME = 0.1
@@ -47,15 +47,5 @@ class WorkerSvc(worker_pb2_grpc.WorkerSvcServicer):
             self._tasks.append(taskid)
         return worker_pb2.TaskResponse(taskid=taskid)
 
-def serve():
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-    worker_pb2_grpc.add_WorkerSvcServicer_to_server(WorkerSvc(), server)
-    server.add_insecure_port('[::]:50053')
-    server.start()
-    server.wait_for_termination()
 
-
-if __name__ == '__main__':
-    
-    serve()
     

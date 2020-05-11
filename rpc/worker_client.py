@@ -1,7 +1,7 @@
 import grpc
 
-import worker_pb2_grpc
-import worker_pb2 
+import rpc.worker_pb2_grpc as worker_pb2_grpc
+import rpc.worker_pb2_grpc as worker_pb2 
 
 
 
