@@ -8,7 +8,7 @@ import sys
 import getopt
 import json
 import logging
-from policies import random_pick
+# from policies import random_pick
 import config
 from rpc.worker_client import WorkerClient
 from metrics import profile
@@ -30,6 +30,7 @@ class ConsumerClient:
             'auto.offset.reset': 'earliest', 'group.id': 1001,}
         self._consumer =  Consumer(conf)
         self._workers = []
+        self._cur_worker = -1
         self._init_workers()
 
 
@@ -76,7 +77,9 @@ class ConsumerClient:
     def _select_best_worker(self):
         if not self._workers:
             return None
-        return random_pick(self._workers)
+        self._cur_worker = (self._cur_worker + 1) % len(self._workers)
+        return self._workers[self._cur_worker]
+        
 
 
 

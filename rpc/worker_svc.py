@@ -3,6 +3,7 @@ import queue
 from collections import deque
 import time
 import logging
+import os
 
 import grpc 
 from concurrent import futures
@@ -12,11 +13,11 @@ import rpc.worker_pb2_grpc as worker_pb2_grpc
 import rpc.worker_pb2 as worker_pb2
 import config
 
-TASK_RUNNING_TIME = 0.01
+TASK_RUNNING_TIME = 0
 FORMAT = '%(asctime)-15s %(message)s'
 logger = logging.getLogger("worker")
 logger.setLevel(logging.INFO)
-logging.basicConfig(filename="worker.log", filemode="w", format=FORMAT)
+logging.basicConfig(filename="worker-{0}.log".format(os.getpid()), filemode="w", format=FORMAT)
 
 class WorkerSvc(worker_pb2_grpc.WorkerSvcServicer):
 
@@ -33,7 +34,7 @@ class WorkerSvc(worker_pb2_grpc.WorkerSvcServicer):
     def _run(self):
         while True:
             task = self._tasks.get()
-            time.sleep(TASK_RUNNING_TIME)
+            # time.sleep(TASK_RUNNING_TIME)
             self._finish_task(task)
 
     
