@@ -1,7 +1,7 @@
 import grpc
 
 import rpc.worker_pb2_grpc as worker_pb2_grpc
-import rpc.worker_pb2_grpc as worker_pb2 
+import rpc.worker_pb2 as worker_pb2 
 
 
 
@@ -18,6 +18,9 @@ class WorkerClient:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         return self.channel.close()
+
+    def send_task(self, taskid):
+        self.stub.send_task(worker_pb2.TaskRequest(taskid=taskid))
 
     def close(self):
         self.channel.close()
