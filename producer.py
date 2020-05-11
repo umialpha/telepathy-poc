@@ -8,10 +8,13 @@ import config
 import logging
 from metrics import profile
 
+from confluent_kafka.admin import AdminClient, NewTopic
+
 FORMAT = '%(asctime)-15s %(message)s'
 logger = logging.getLogger("producer")
 logger.setLevel(logging.INFO)
 logging.basicConfig(filename="producer.log", filemode="w", format=FORMAT)
+
 
 class ProducerClient:
 
@@ -25,6 +28,17 @@ class ProducerClient:
     @profile(logger)
     def submit_job(self, job):
         logger.debug("submit job start " + str(job.jobid))
+
+        
+
+        a = AdminClient({'bootstrap.servers': config.BOOTSTRAP_SERVER})
+
+        new_topics = [NewTopic(topic, num_partitions=config.PARTITION_NUM, replication_factor=1) for topic in [config.JOB_SUBMIT_TOPIC + str(job.jobid)]]
+
+        fs = a.create_topics(new_topics)
+        for topic, f in fs.items():
+            f.result()
+
         def delivery_callback(err, msg):
             if err:
                 print("{0} deliver error: {1}".format(msg, err))

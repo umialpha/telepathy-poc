@@ -1,3 +1,7 @@
+kafka itself 
+1 p, 1 c, 50k / s 
+
+
 10 ** 6 msg, 1 producer, 32 consumer, 1 partition
 
 10000 msg / 100 s
