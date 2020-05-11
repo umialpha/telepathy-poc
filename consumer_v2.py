@@ -59,7 +59,7 @@ class ConsumerClient:
     
     def _consume(self, msg):
         time.sleep(0.01)
-        self._producer.produce(config.JOB_FINISH_TOPIC + str(config.JOB_ID), str(msg), timestamp=int(time.time()))
+        self._producer.produce(config.JOB_FINISH_TOPIC + str(config.JOB_ID), str(msg.value()), timestamp=int(time.time()))
         self._producer.poll(0)
 
    
