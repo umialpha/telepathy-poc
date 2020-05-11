@@ -28,7 +28,8 @@ class WorkerSvc(worker_pb2_grpc.WorkerSvcServicer):
         _running_task.start()
         conf = {'bootstrap.servers': config.BOOTSTRAP_SERVER}
         self._producer = Producer(**conf)
-        self._finished_num = 0
+        # self._finished_num = 0
+        
 
 
     def _run(self):
@@ -42,13 +43,14 @@ class WorkerSvc(worker_pb2_grpc.WorkerSvcServicer):
         self._producer.produce(config.JOB_FINISH_TOPIC + str(config.JOB_ID), str(task))
         self._producer.poll(0)
         # logger.debug("finish task " + str(task))
-        self._finished_num += 1
-        if self._finished_num % 1000 == 0:
-            logger.info("finished tasks " + str(self._finished_num))
+        # self._finished_num += 1
+        # if self._finished_num % 1000 == 0:
+        #     logger.info("finished tasks " + str(self._finished_num))
 
-    def send_task(self, request, context):
-        taskid = request.taskid
-        self._tasks.put(taskid, False)
+    def send_task(self, request_iterator, context):
+        for request in request_iterator:
+            taskid = request.taskid
+            self._tasks.put(taskid, False)
         return worker_pb2.TaskResponse(taskid=taskid)
 
 

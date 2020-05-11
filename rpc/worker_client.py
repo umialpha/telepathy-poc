@@ -12,7 +12,7 @@ class WorkerClient:
         self.channel = grpc.insecure_channel(server_endpoint)
         self.stub = worker_pb2_grpc.WorkerSvcStub(self.channel)
         self._queue = queue.Queue()
-        self._stream = None
+        self._stream =  self.stub.send_task(iter(self._queue.get, None))
 
 
     def __enter__(self):
@@ -22,9 +22,6 @@ class WorkerClient:
         return self.channel.close()
 
     def send_task(self, taskid):
-        if not self._stream:
-            self._stream = self.stub.send_task(iter(self._queue.get, None))
-
         self._queue.put(worker_pb2.TaskRequest(taskid=int(taskid)), False)
 
     def close(self):

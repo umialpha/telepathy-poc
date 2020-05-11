@@ -32,7 +32,7 @@ class ProducerClient:
         for task in job.tasks:
             try:
             # Produce line (without newline)
-                self._producer.produce(config.JOB_SUBMIT_TOPIC + str(job.jobid), str(task.taskid), timestamp=task.timestamp, callback=delivery_callback)
+                self._producer.produce(config.JOB_SUBMIT_TOPIC + str(job.jobid), str(task.taskid), timestamp=int(task.timestamp), callback=delivery_callback)
 
             except BufferError:
                 logger.debug('%% Local producer queue is full (%d messages awaiting delivery): try again\n' %
