@@ -13,7 +13,7 @@ class WorkerSvcStub(object):
         Args:
             channel: A grpc.Channel.
         """
-        self.send_task = channel.unary_unary(
+        self.send_task = channel.stream_unary(
                 '/WorkerSvc/send_task',
                 request_serializer=worker__pb2.TaskRequest.SerializeToString,
                 response_deserializer=worker__pb2.TaskResponse.FromString,
@@ -23,7 +23,7 @@ class WorkerSvcStub(object):
 class WorkerSvcServicer(object):
     """Missing associated documentation comment in .proto file"""
 
-    def send_task(self, request, context):
+    def send_task(self, request_iterator, context):
         """Missing associated documentation comment in .proto file"""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -32,7 +32,7 @@ class WorkerSvcServicer(object):
 
 def add_WorkerSvcServicer_to_server(servicer, server):
     rpc_method_handlers = {
-            'send_task': grpc.unary_unary_rpc_method_handler(
+            'send_task': grpc.stream_unary_rpc_method_handler(
                     servicer.send_task,
                     request_deserializer=worker__pb2.TaskRequest.FromString,
                     response_serializer=worker__pb2.TaskResponse.SerializeToString,
@@ -48,7 +48,7 @@ class WorkerSvc(object):
     """Missing associated documentation comment in .proto file"""
 
     @staticmethod
-    def send_task(request,
+    def send_task(request_iterator,
             target,
             options=(),
             channel_credentials=None,
@@ -57,7 +57,7 @@ class WorkerSvc(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/WorkerSvc/send_task',
+        return grpc.experimental.stream_unary(request_iterator, target, '/WorkerSvc/send_task',
             worker__pb2.TaskRequest.SerializeToString,
             worker__pb2.TaskResponse.FromString,
             options, channel_credentials,

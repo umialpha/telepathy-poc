@@ -32,6 +32,7 @@ class ConsumerClient:
         self._workers = []
         self._cur_worker = -1
         self._init_workers()
+        self._now = time.time()
 
 
     def _init_workers(self):
@@ -58,10 +59,11 @@ class ConsumerClient:
                 self.close_workers()
                 raise KafkaException(msg.error())
             else:
-                if cnt % 1000 == 0:
+                if cnt % 10000 == 0:
                     logger.info("{0} receive tasks cost {1} sec".format(cnt, time.time() - now))
                 self._dispatch(msg)
 
+    @profile(logger=logger)
     def _dispatch(self, msg):
         # self.finish_task(msg)
         worker = self._select_best_worker()
