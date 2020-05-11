@@ -54,9 +54,9 @@ class ProducerClient:
                 raise Exception(msg.error())
             else:
                 taskid = int(msg.value())
-                logger.debug("task {0} cost {1} sec".format(taskid, time.time() - job.tasks[taskid].timestamp))
-
                 cnt += 1
+                if cnt % 1000 == 0:
+                    logger.info("{0} tasks cost {1} sec".format(cnt, time.time() - job.tasks[taskid].timestamp))
                 if cnt >= len(job.tasks) * 0.9:
                     logger.info("finish job")
                     return

@@ -1,6 +1,6 @@
 BOOTSTRAP_SERVER = "172.16.0.5:9092"
 JOB_SUBMIT_TOPIC = "kafka-poc-job-submit-"
 JOB_FINISH_TOPIC = "kafka-poc-job-finish-"
-JOB_ID = 1006
-TASK_NUM = 10**4
-WORKERS_ADDRS = ["172.16.0.7:5001","172.16.0.7:5002", "172.16.0.7:5003"]
+JOB_ID = 1009
+TASK_NUM = 10**5 
+WORKERS_ADDRS = ["172.16.0.8:{0}".format(i) for i in range(5001, 5001 + 32)]
