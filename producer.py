@@ -44,7 +44,7 @@ class ProducerClient:
     
     @profile(logger=logger)
     def monitor_job(self, job):
-        # max_cost = -1
+        max_cost = -1
         cnt = 0
         now = time.time()
         self._consumer.subscribe([config.JOB_FINISH_TOPIC + str(config.JOB_ID)])
@@ -55,12 +55,13 @@ class ProducerClient:
             if msg.error():
                 raise Exception(msg.error())
             else:
-                # taskid = int(msg.value())
-                # _, finish_time = msg.timestamp()
-                # max_cost = max(max_cost, finish_time - job.tasks[taskid].timestamp)
+                taskid = int(msg.value())
+                _, finish_time = msg.timestamp()
+                max_cost = max(max_cost, finish_time - job.tasks[taskid].timestamp)
                 cnt += 1
                 if cnt % 10000 == 0:
-                    logger.info("monitor {0} tasks max_cost {1} sec".format(cnt, time.time() - now))
+                    logger.info("monitor {0} tasks cost {1} sec".format(cnt, time.time() - now))
+                    logger.info("max_cost {0} sec".format(max_cost))
                 if cnt >= len(job.tasks) * 0.9:
                     # logger.info("finish job cost:" + str(max_cost))
                     return

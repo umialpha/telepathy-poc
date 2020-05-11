@@ -63,7 +63,7 @@ class ConsumerClient:
                     logger.info("{0} receive tasks cost {1} sec".format(cnt, time.time() - now))
                 self._dispatch(msg)
 
-    @profile(logger=logger)
+    
     def _dispatch(self, msg):
         # self.finish_task(msg)
         worker = self._select_best_worker()
