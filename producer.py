@@ -1,11 +1,13 @@
 #!/usr/bin/env python
-
+import time
+import threading
 
 from confluent_kafka import Producer, Consumer
 import sys
 import config
 import logging
 from metrics import profile
+
 
 logger = logging.getLogger("ProducerClient")
 logger.setLevel(logging.DEBUG)
@@ -51,6 +53,9 @@ class ProducerClient:
             if msg.error():
                 raise Exception(msg.error())
             else:
+                taskid = int(msg.value())
+                logger.debug("task {0} cost {1} sec".format(taskid, time.time() - job.tasks[taskid].timestamp))
+
                 cnt += 1
                 if cnt >= len(job.tasks):
                     return
@@ -66,7 +71,9 @@ if __name__ == "__main__":
             job.tasks.append(Task(i))
         
         p = ProducerClient()
-        p.submit_job(job)
+        t1 = threading.Thread(target=p.submit_job, args=(job,))
+        t1.start()
+        p.monitor_job(job)
 
     main_producer()
 
