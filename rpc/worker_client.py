@@ -36,6 +36,6 @@ class WorkerClient:
 
 
 
-# if __name__ == "__main__":
-#     client = WorkerClient("localhost:5001")
-#     client.stub.send_task()
+if __name__ == "__main__":
+    client = WorkerClient("localhost:5001")
+    client.stub.send_task(worker_pb2.TaskRequest(taskid=1))

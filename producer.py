@@ -10,7 +10,7 @@ from metrics import profile
 
 
 logger = logging.getLogger("producer")
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 logging.basicConfig(filename="producer.log")
 
 class ProducerClient:
@@ -57,7 +57,8 @@ class ProducerClient:
                 logger.debug("task {0} cost {1} sec".format(taskid, time.time() - job.tasks[taskid].timestamp))
 
                 cnt += 1
-                if cnt >= len(job.tasks):
+                if cnt >= len(job.tasks) * 0.9:
+                    logger.info("finish job")
                     return
 
         

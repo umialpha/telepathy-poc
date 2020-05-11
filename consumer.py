@@ -30,7 +30,7 @@ from metrics import profile
 
 
 logger = logging.getLogger("consumer")
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 logging.basicConfig(filename="consumer.log", filemode="w")
 
 def delivery_callback(err, msg):
@@ -59,7 +59,7 @@ class ConsumerClient:
 
     @profile(logger=logger)
     def consume(self, topics):
-        logger.debug("start to consume {}".format(topics))
+        logger.info("start to consume {}".format(topics))
         self._consumer.subscribe(topics)
         while True:
             msg = self._consumer.poll(timeout=1.0)

@@ -14,7 +14,7 @@ import config
 TASK_RUNNING_TIME = 0.1
 
 logger = logging.getLogger("worker")
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 logging.basicConfig(filename="worker.log", filemode="w")
 
 class WorkerSvc(worker_pb2_grpc.WorkerSvcServicer):

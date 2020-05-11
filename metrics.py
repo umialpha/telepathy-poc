@@ -7,7 +7,7 @@ def profile(logger):
         def wrapper(*args, **kwargs):
             start_time = time.time()
             result = func(*args, **kwargs)
-            logger.debug(
+            logger.info(
                 "{0}.duration.ms {1}".format(func.__name__, int((time.time() - start_time) * 1000)),
                 )
             return result
