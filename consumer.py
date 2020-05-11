@@ -13,10 +13,10 @@ import config
 from rpc.worker_client import WorkerClient
 from metrics import profile
 
-
+FORMAT = '%(asctime)-15s %(message)s'
 logger = logging.getLogger("consumer")
 logger.setLevel(logging.INFO)
-logging.basicConfig(filename="consumer.log", filemode="w")
+logging.basicConfig(filename="consumer.log", filemode="w", format=FORMAT)
 
 def delivery_callback(err, msg):
     if err:

@@ -8,10 +8,10 @@ import config
 import logging
 from metrics import profile
 
-
+FORMAT = '%(asctime)-15s %(message)s'
 logger = logging.getLogger("producer")
 logger.setLevel(logging.INFO)
-logging.basicConfig(filename="producer.log")
+logging.basicConfig(filename="producer.log", filemode="w", format=FORMAT)
 
 class ProducerClient:
 
