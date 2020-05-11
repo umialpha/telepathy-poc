@@ -42,7 +42,7 @@ class WorkerSvc(worker_pb2_grpc.WorkerSvcServicer):
 
     
     def _finish_task(self, task):
-        self._producer.produce(config.JOB_FINISH_TOPIC + str(config.JOB_ID), task)
+        self._producer.produce(config.JOB_FINISH_TOPIC + str(config.JOB_ID), str(task))
         self._producer.poll(0)
         logger.debug("finish task " + str(task))
 
