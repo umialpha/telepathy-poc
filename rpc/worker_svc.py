@@ -50,6 +50,7 @@ class WorkerSvc(worker_pb2_grpc.WorkerSvcServicer):
     def send_task(self, request_iterator, context):
         for request in request_iterator:
             taskid = request.taskid
+            print("send_task", taskid)
             self._tasks.put(taskid, False)
             yield worker_pb2.TaskResponse(taskid=taskid)
 
