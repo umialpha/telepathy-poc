@@ -39,7 +39,7 @@ class ProducerClient:
                                 len(self._producer))
             self._producer.poll(0)
 
-        logger.debug('%% Waiting for %d deliveries\n' % len(self._producer))
+        logger.info('%% Waiting for %d deliveries\n' % len(self._producer))
         self._producer.flush()
     
     @profile(logger=logger)
