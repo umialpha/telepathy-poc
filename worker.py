@@ -1,28 +1,29 @@
 import time
 import threading
+from concurrent import futures
 
-TASK_RUNNING_TIME = 0.1
+import grpc
 
-class Worker:
+from rpc.worker_svc import WorkerSvc
+import rpc.worker_pb2_grpc as worker_pb2_grpc
+import rpc.worker_pb2
+import config
 
-    def __init__(self):
-        self.server = None
-        self.client = None
-        self.tasks = []
-        self._lock = threading.Lock()
+class Worker(WorkerSvc):
+    pass
 
-    def _work(self):
-        while True:
-            with self._lock:
-                if self.tasks:
-                    task = self.tasks.pop()
-            time.sleep(TASK_RUNNING_TIME)
-            self.finish_work(task)
 
-    def send_task(self):
-        pass
+def serve(port):
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+    worker_pb2_grpc.add_WorkerSvcServicer_to_server(WorkerSvc(), server)
+    server.add_insecure_port('[::]:{0}'.format(port))
+    server.start()
+    server.wait_for_termination()
 
-    def finish_work(self, task):
-        pass
+
+if __name__ == '__main__':
+    serve(5003)
+
+
 
     

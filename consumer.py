@@ -25,6 +25,13 @@ import json
 import logging
 from policies import random_pick
 import config
+from rpc.worker_client import WorkerClient
+from metrics import profile
+
+
+logger = logging.getLogger("Consumer")
+logger.setLevel(logging.DEBUG)
+logging.basicConfig(filename="Consumer")
 
 def delivery_callback(err, msg):
     if err:
@@ -37,15 +44,17 @@ class ConsumerClient:
         conf = {'bootstrap.servers': config.BOOTSTRAP_SERVER, 'session.timeout.ms': 6000,
             'auto.offset.reset': 'earliest'}
         self._consumer =  Consumer(conf)
-        conf = {'bootstrap.servers': config.BOOTSTRAP_SERVER}
-        self._producer = Producer(**conf)
-
         self._workers = []
-
-    def add_worker(self, worker):
-        self._workers.append(worker)
+        self._init_workers()
 
 
+    def _init_workers(self):
+        for endpoint in config.WORKERS_ADDRS:
+            self._workers.append(WorkerClient(endpoint))
+
+    
+
+    @profile(logger=logger)
     def consume(self, topics):
         self._consumer.subscribe(topics)
         while True:
@@ -58,14 +67,14 @@ class ConsumerClient:
                self._dispatch(msg)
 
     def _dispatch(self, msg):
-        self.finish_task(msg)
-        # worker = self._select_best_worker()
-        # if not worker:
-        #     raise Exception("No Workers")
-        # try:        
-        #     worker.send_task(msg)
-        # except Exception as e:
-        #     print("send task error,", e, msg)
+        # self.finish_task(msg)
+        worker = self._select_best_worker()
+        if not worker:
+            raise Exception("No Workers")
+        try:        
+            worker.stub.send_task(msg)
+        except Exception as e:
+            print("send task error,", e, msg)
 
 
     def _select_best_worker(self):
@@ -73,6 +82,4 @@ class ConsumerClient:
             return None
         return random_pick(self._workers)
 
-    def finish_task(self, task):
-        self._producer.produce(config.JOB_FINISH_TOPIC + config.JOB_ID, task, callback=delivery_callback)
-        self._producer.poll(0)
+    

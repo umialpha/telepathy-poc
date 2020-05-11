@@ -2,21 +2,15 @@ syntax = "proto3";
 
 service WorkerSvc {
     rpc send_task (TaskRequest) returns (TaskResponse);
-    rpc finish_task(TaskFinishRequest) return (TraskFinishResponse);
+    
 }
 
 message TaskRequest {
-	int taskid = 1;
+	int32 taskid = 1;
 }
 
 message TaskResponse {
-	int taskid = 1;
+	int32 taskid = 1;
 }
 
-message TaskFinishRequest {
-	int taskid = 1;
-}
 
-message TraskFinishResponse {
-	int taskid = 1;
-}
