@@ -77,7 +77,7 @@ class ConsumerClient:
         if not worker:
             raise Exception("No Workers")
         try:        
-            worker.send_task(msg)
+            worker.send_task(msg.value())
         except Exception as e:
             logger.debug("send task error,{0}, {1}".format(e, msg))
             self.close_workers()
