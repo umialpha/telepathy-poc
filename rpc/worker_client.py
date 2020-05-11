@@ -20,7 +20,7 @@ class WorkerClient:
         return self.channel.close()
 
     def send_task(self, taskid):
-        self.stub.send_task(worker_pb2.TaskRequest(taskid=taskid))
+        self.stub.send_task(worker_pb2.TaskRequest(taskid=int(taskid)))
 
     def close(self):
         self.channel.close()

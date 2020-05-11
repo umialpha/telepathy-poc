@@ -45,7 +45,7 @@ class ProducerClient:
     @profile(logger=logger)
     def monitor_job(self, job):
         cnt = 0
-        self._consumer.subscribe(config.JOB_FINISH_TOPIC + str(config.JOB_ID))
+        self._consumer.subscribe([config.JOB_FINISH_TOPIC + str(config.JOB_ID)])
         while True:
             msg = self._consumer.poll(timeout=1.0)
             if msg is None:
