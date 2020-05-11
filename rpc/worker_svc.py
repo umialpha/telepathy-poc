@@ -51,7 +51,7 @@ class WorkerSvc(worker_pb2_grpc.WorkerSvcServicer):
         for request in request_iterator:
             taskid = request.taskid
             self._tasks.put(taskid, False)
-        return worker_pb2.TaskResponse(taskid=taskid)
+            yield worker_pb2.TaskResponse(taskid=taskid)
 
 
     
