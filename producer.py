@@ -32,7 +32,7 @@ class ProducerClient:
         for task in job.tasks:
             try:
             # Produce line (without newline)
-                self._producer.produce(config.JOB_SUBMIT_TOPIC + str(job.jobid), str(task.taskid), timestamp=int(task.timestamp), callback=delivery_callback)
+                self._producer.produce(config.JOB_SUBMIT_TOPIC + str(job.jobid), str(task.taskid), partition=task.taskid % 32, timestamp=int(task.timestamp), callback=delivery_callback)
 
             except BufferError:
                 logger.debug('%% Local producer queue is full (%d messages awaiting delivery): try again\n' %
@@ -55,13 +55,13 @@ class ProducerClient:
             if msg.error():
                 raise Exception(msg.error())
             else:
-                taskid = int(msg.value())
+                # taskid = int(msg.value())
                 _, finish_time = msg.timestamp()
-                max_cost = max(max_cost, finish_time - job.tasks[taskid].timestamp)
+                # max_cost = max(max_cost, finish_time - job.tasks[taskid].timestamp)
                 cnt += 1
                 if cnt % 10000 == 0:
                     logger.info("monitor {0} tasks cost {1} sec".format(cnt, time.time() - now))
-                    logger.info("max_cost {0} sec".format(max_cost))
+                    # logger.info("max_cost {0} sec".format(max_cost))
                 if cnt >= len(job.tasks) * 0.9:
                     # logger.info("finish job cost:" + str(max_cost))
                     return
