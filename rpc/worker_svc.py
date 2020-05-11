@@ -1,4 +1,5 @@
 from threading import Lock, Thread
+import queue
 from collections import deque
 import time
 import logging
@@ -11,7 +12,7 @@ import rpc.worker_pb2_grpc as worker_pb2_grpc
 import rpc.worker_pb2 as worker_pb2
 import config
 
-TASK_RUNNING_TIME = 0.1
+TASK_RUNNING_TIME = 0.01
 
 logger = logging.getLogger("worker")
 logger.setLevel(logging.INFO)
@@ -20,8 +21,7 @@ logging.basicConfig(filename="worker.log", filemode="w")
 class WorkerSvc(worker_pb2_grpc.WorkerSvcServicer):
 
     def __init__(self):
-        self._tasks = deque()
-        self._lock = Lock()
+        self._tasks = queue.Queue()
         _running_task = Thread(target=self._run)
         _running_task.daemon = True
         _running_task.start()
@@ -31,12 +31,7 @@ class WorkerSvc(worker_pb2_grpc.WorkerSvcServicer):
 
     def _run(self):
         while True:
-            task = None
-            with self._lock:
-                if self._tasks:
-                    task = self._tasks.popleft()
-            if not task:
-                continue
+            task = self._tasks.get()
             time.sleep(TASK_RUNNING_TIME)
             self._finish_task(task)
 
@@ -48,8 +43,7 @@ class WorkerSvc(worker_pb2_grpc.WorkerSvcServicer):
 
     def send_task(self, request, context):
         taskid = request.taskid
-        with self._lock:
-            self._tasks.append(taskid)
+        self._tasks.put(taskid, False)
         return worker_pb2.TaskResponse(taskid=taskid)
 
 

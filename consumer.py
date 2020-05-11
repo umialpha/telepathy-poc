@@ -1,23 +1,8 @@
 #!/usr/bin/env python
 #
-# Copyright 2016 Confluent Inc.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-# http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-#
 
-#
-# Example high-level Kafka 0.9 balanced Consumer
-#
+
+import time
 from confluent_kafka import Consumer, KafkaException, Producer
 import sys
 import getopt
@@ -60,16 +45,21 @@ class ConsumerClient:
     @profile(logger=logger)
     def consume(self, topics):
         logger.info("start to consume {}".format(topics))
+        now = time.time()
+        cnt = 0
         self._consumer.subscribe(topics)
         while True:
             msg = self._consumer.poll(timeout=1.0)
             if msg is None:
                 continue
+            cnt += 1
             if msg.error():
                 self.close_workers()
                 raise KafkaException(msg.error())
             else:
-               self._dispatch(msg)
+                if cnt % 1000 == 0:
+                    logger.info("{0} receive tasks cost {1} sec".format(cnt, time.time() - now))
+                self._dispatch(msg)
 
     def _dispatch(self, msg):
         # self.finish_task(msg)
