@@ -8,14 +8,16 @@ import rpc.worker_pb2_grpc as worker_pb2
 class WorkerClient:
 
     def __init__(self, server_endpoint):
-        self.stub = grpc.insecure_channel(server_endpoint)
+        
+        self.channel = grpc.insecure_channel(server_endpoint)
+        self.stub = worker_pb2_grpc.WorkerSvcStub(self.channel)
 
 
     def __enter__(self):
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        return self.stub.close()
+        return self.channel.close()
 
 
     # def __getattr__(self, attr):

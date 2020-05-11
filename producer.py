@@ -9,9 +9,9 @@ import logging
 from metrics import profile
 
 
-logger = logging.getLogger("ProducerClient")
+logger = logging.getLogger("producer")
 logger.setLevel(logging.DEBUG)
-logging.basicConfig(filename="ProducerClient")
+logging.basicConfig(filename="producer.log")
 
 class ProducerClient:
 

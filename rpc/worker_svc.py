@@ -1,6 +1,7 @@
 from threading import Lock, Thread
 from collections import deque
 import time
+import logging
 
 import grpc 
 from concurrent import futures
@@ -11,6 +12,10 @@ import rpc.worker_pb2 as worker_pb2
 import config
 
 TASK_RUNNING_TIME = 0.1
+
+logger = logging.getLogger("worker")
+logger.setLevel(logging.DEBUG)
+logging.basicConfig(filename="worker.log", filemode="w")
 
 class WorkerSvc(worker_pb2_grpc.WorkerSvcServicer):
 
@@ -39,7 +44,7 @@ class WorkerSvc(worker_pb2_grpc.WorkerSvcServicer):
     def _finish_task(self, task):
         self._producer.produce(config.JOB_FINISH_TOPIC + config.JOB_ID, task)
         self._producer.poll(0)
-        print("finish task", task)
+        logger.debug("finish task " + str(task))
 
     def send_task(self, request, context):
         taskid = request.taskid

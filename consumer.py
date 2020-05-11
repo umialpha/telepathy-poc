@@ -29,9 +29,9 @@ from rpc.worker_client import WorkerClient
 from metrics import profile
 
 
-logger = logging.getLogger("Consumer")
+logger = logging.getLogger("consumer")
 logger.setLevel(logging.DEBUG)
-logging.basicConfig(filename="Consumer")
+logging.basicConfig(filename="consumer.log", filemode="w")
 
 def delivery_callback(err, msg):
     if err:
@@ -52,6 +52,9 @@ class ConsumerClient:
         for endpoint in config.WORKERS_ADDRS:
             self._workers.append(WorkerClient(endpoint))
 
+    def close_workers(self):
+        for w in self._workers:
+            w.close()
     
 
     @profile(logger=logger)
@@ -63,6 +66,7 @@ class ConsumerClient:
             if msg is None:
                 continue
             if msg.error():
+                self.close_workers()
                 raise KafkaException(msg.error())
             else:
                self._dispatch(msg)
@@ -75,13 +79,15 @@ class ConsumerClient:
         try:        
             worker.stub.send_task(msg)
         except Exception as e:
-            print("send task error,", e, msg)
-
+            logger.debug("send task error,{0}, {1}".format(e, msg))
+            self.close_workers()
+            raise
 
     def _select_best_worker(self):
         if not self._workers:
             return None
         return random_pick(self._workers)
+
 
 
 if __name__ == "__main__":
