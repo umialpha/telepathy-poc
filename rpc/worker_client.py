@@ -19,6 +19,8 @@ class WorkerClient:
     def __exit__(self, exc_type, exc_val, exc_tb):
         return self.channel.close()
 
+    def close(self):
+        self.channel.close()
 
     # def __getattr__(self, attr):
     #     if attr in self.__dict__:
