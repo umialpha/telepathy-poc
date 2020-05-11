@@ -18,7 +18,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   package='',
   syntax='proto3',
   serialized_options=None,
-  serialized_pb=b'\n\x0cworker.proto\"\x1d\n\x0bTaskRequest\x12\x0e\n\x06taskid\x18\x01 \x01(\x05\"\x1e\n\x0cTaskResponse\x12\x0e\n\x06taskid\x18\x01 \x01(\x05\x32\x37\n\tWorkerSvc\x12*\n\tsend_task\x12\x0c.TaskRequest\x1a\r.TaskResponse(\x01\x62\x06proto3'
+  serialized_pb=b'\n\x0cworker.proto\"\x1d\n\x0bTaskRequest\x12\x0e\n\x06taskid\x18\x01 \x01(\x05\"\x1e\n\x0cTaskResponse\x12\x0e\n\x06taskid\x18\x01 \x01(\x05\x32\x39\n\tWorkerSvc\x12,\n\tsend_task\x12\x0c.TaskRequest\x1a\r.TaskResponse(\x01\x30\x01\x62\x06proto3'
 )
 
 
@@ -112,7 +112,7 @@ _WORKERSVC = _descriptor.ServiceDescriptor(
   index=0,
   serialized_options=None,
   serialized_start=79,
-  serialized_end=134,
+  serialized_end=136,
   methods=[
   _descriptor.MethodDescriptor(
     name='send_task',
