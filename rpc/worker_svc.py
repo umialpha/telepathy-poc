@@ -13,7 +13,7 @@ import rpc.worker_pb2_grpc as worker_pb2_grpc
 import rpc.worker_pb2 as worker_pb2
 import config
 
-TASK_RUNNING_TIME = 0
+TASK_RUNNING_TIME = 0.01
 FORMAT = '%(asctime)-15s %(message)s'
 logger = logging.getLogger("worker")
 logger.setLevel(logging.INFO)

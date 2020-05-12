@@ -8,7 +8,9 @@ import sys
 import getopt
 import json
 import logging
-# from policies import random_pick
+import os
+
+from policies import random_pick
 import config
 from rpc.worker_client import WorkerClient
 from metrics import profile
@@ -16,7 +18,7 @@ from metrics import profile
 FORMAT = '%(asctime)-15s %(message)s'
 logger = logging.getLogger("consumer")
 logger.setLevel(logging.INFO)
-logging.basicConfig(filename="consumer.log", filemode="w", format=FORMAT)
+logging.basicConfig(filename="consumer-{0}.log".format(os.getpid()), filemode="w", format=FORMAT)
 
 def delivery_callback(err, msg):
     if err:
@@ -33,7 +35,8 @@ class ConsumerClient:
         self._cur_worker = -1
         self._init_workers()
         self._now = time.time()
-
+        self._dispatch_cost = 0
+        self._dispatch_num = 0
 
     def _init_workers(self):
         for endpoint in config.WORKERS_ADDRS:
@@ -65,7 +68,8 @@ class ConsumerClient:
 
     
     def _dispatch(self, msg):
-        # self.finish_task(msg)
+        cost = time.time()
+        self._dispatch_num += 1
         worker = self._select_best_worker()
         if not worker:
             raise Exception("No Workers")
@@ -75,12 +79,17 @@ class ConsumerClient:
             logger.debug("send task error,{0}, {1}".format(e, msg))
             self.close_workers()
             raise
+        self._dispatch_cost += (time.time() - cost)
+        if self._dispatch_num % 1000 == 0:
+            logger.info("dispatch task {0}, cost {1}".format(self._dispatch_num, self._dispatch_cost))
+
 
     def _select_best_worker(self):
         if not self._workers:
             return None
-        self._cur_worker = (self._cur_worker + 1) % len(self._workers)
-        return self._workers[self._cur_worker]
+        # self._cur_worker = (self._cur_worker + 1) % len(self._workers)
+        # return self._workers[self._cur_worker]
+        return random_pick(self._workers)
         
 
 
