@@ -3,6 +3,7 @@ import grpc
 import rpc.worker_pb2_grpc as worker_pb2_grpc
 import rpc.worker_pb2 as worker_pb2 
 import queue
+import threading
 
 
 class WorkerClient:
@@ -12,9 +13,13 @@ class WorkerClient:
         self.channel = grpc.insecure_channel(server_endpoint)
         self.stub = worker_pb2_grpc.WorkerSvcStub(self.channel)
         self._queue = queue.Queue()
-        self.resp = self.stub.send_task(iter(self._queue.get, None))
+        _run = threading.Thread(target=self._run)
+        _run.daemon = True
+        _run.start()
         
-
+    def _run(self):
+        for resp in self.stub.send_task(iter(self._queue.get, None)):
+            pass
 
     def __enter__(self):
         return self
@@ -24,7 +29,6 @@ class WorkerClient:
 
     def send_task(self, taskid):
         self._queue.put(worker_pb2.TaskRequest(taskid=int(taskid)), False)
-        next(self.resp)
         
 
     def close(self):
