@@ -1,5 +1,8 @@
 syntax = "proto3";
 
+
+package protos;
+
 service FrontendSvc {
     rpc send_req (ClientRequest) returns (ClientResponse);
     

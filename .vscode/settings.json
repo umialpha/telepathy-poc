@@ -1,3 +1,4 @@
 {
-    "python.pythonPath": "C:\\Users\\leli2.FAREAST\\AppData\\Local\\Programs\\Python\\Python35\\python.exe"
+    "python.pythonPath": "C:\\Users\\leli2.FAREAST\\AppData\\Local\\Programs\\Python\\Python35\\python.exe",
+    "go.inferGopath": false
 }
