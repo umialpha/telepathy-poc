@@ -9,7 +9,6 @@ import getopt
 import json
 import logging
 import os
-
 from policies import random_pick
 import config
 from rpc.worker_client import WorkerClient

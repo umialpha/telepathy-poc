@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+service FrontendSvc {
+    rpc send_req (ClientRequest) returns (ClientResponse);
+    
+}
+
+message ClientRequest {
+	int32 taskid = 1;
+}
+
+message ClientResponse {
+	int32 taskid = 1;
+}
