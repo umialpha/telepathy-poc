@@ -4,14 +4,27 @@ syntax = "proto3";
 package protos;
 
 service FrontendSvc {
-    rpc send_req (ClientRequest) returns (ClientResponse);
-    
+	rpc create_job(JobRequest) returns (JobResponse);
+    rpc send_task (TaskRequest) returns (TaskResponse);
+    rpc get_response (JobRequest) returns (stream TaskResponse);
+	rpc close_job(JobRequest) returns (JobResponse);
 }
 
-message ClientRequest {
-	int32 taskid = 1;
+message JobRequest {
+	string JobID = 1;
+	int32 reqNum = 2;
 }
 
-message ClientResponse {
-	int32 taskid = 1;
+message JobResponse {
+	string JobID = 1;
+}
+
+message TaskRequest {
+	string JobID = 1;
+	int32 TaskID = 2;
+}
+
+message TaskResponse {
+	string JobID = 1;
+	int32 TaskID = 2;
 }

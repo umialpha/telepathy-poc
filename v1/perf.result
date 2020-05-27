@@ -7,7 +7,7 @@ kafka itself
 ================================================================
 10 ** 6 msg, 1 producer, 32 consumer, 1 partition, job cost 10ms
 
-10000 msg / 100 s
+10000 msg / 100 s = 100 msg / s
 
 
 ================================================================
@@ -33,6 +33,13 @@ grpc stream push
 400000  / 155.03704023361206 sec = 2580 msg/s
 680000 / 228.40994882583618 = 2982 msg / s
 820000 / 265 = 3094 msg / s
+
+
+====================================================================
+10 ** 6 msg, 1 producer, 32 partition, 3 consumer, 32 workers, round robin pick workers, job cost 0ms
+grpc stream push
+
+5000 msg / s
 
 
 cons:

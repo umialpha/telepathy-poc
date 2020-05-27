@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package protos;
+
+service WorkerSvc {
+    rpc send_task (BackendTaskRequest) returns (BackendTaskResponse);
+    
+}
+
+message BackendTaskRequest {
+	int32 TaskID = 1;
+}
+
+message BackendTaskResponse {
+	int32 TaskID = 1;
+}
