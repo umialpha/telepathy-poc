@@ -2,18 +2,21 @@ package main
 
 import (
 	"context"
+	"log"
+	"os"
 
 	"google.golang.org/grpc"
+	"telepathy.poc/mq"
 	pb "telepathy.poc/protos"
 )
 
-func endQueaueName(que string) string {
+func endQueueName(que string) string {
 	return que + "-END"
 }
 
 type WorkerServer struct {
 	pb.UnimplementedWorkerSvcServer
-	kfclient interface{}
+	kfclient mq.IQueueClient
 }
 
 func (w *WorkerServer) SendTask(ctx context.Context, req *pb.TaskRequest) (*pb.TaskResponse, error) {
@@ -21,12 +24,20 @@ func (w *WorkerServer) SendTask(ctx context.Context, req *pb.TaskRequest) (*pb.T
 	return &pb.TaskResponse{JobID: req.JobID, TaskID: req.TaskID}, nil
 }
 
-func (w *WorkerServer) doWork( req *pb.TaskRequest) {
-	kfclient.Produce(endQueaueName(req.JobID), req.TaskID)
+func (w *WorkerServer) doWork(req *pb.TaskRequest) {
+	w.kfclient.Produce(endQueueName(req.JobID), nil, &req.TaskID)
 }
 
 func newServer() *WorkerServer {
-	return &WorkerServer{}
+	mqAddr := os.Getenv("MQ_ADDR")
+	w := &WorkerServer{}
+	c, err := mq.NewKafkaClient(mqAddr)
+	if err != nil {
+		log.Fatalf("Create Worker Kafka Client error: %v.\n", err)
+		return nil
+	}
+	w.kfclient = c
+	return w
 }
 
 func main() {
