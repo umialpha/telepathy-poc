@@ -13,8 +13,8 @@ type kafkaClient struct {
 	producer *kafka.Producer
 }
 
-func (c *kafkaClient) CreateQueue(name string) {
-	a, err := kafka.NewAdminClientFromProducer(p)
+func (c *kafkaClient) CreateQueue(name string, opt ...interface{}) error {
+	a, err := kafka.NewAdminClientFromProducer(c.producer)
 	if err != nil {
 		fmt.Printf("Failed to create new admin client from producer: %s", err)
 		return err
@@ -39,17 +39,19 @@ func (c *kafkaClient) CreateQueue(name string) {
 		if result.Error.Code() != kafka.ErrNoError && result.Error.Code() != kafka.ErrTopicAlreadyExists {
 			fmt.Printf("Failed to create topic: %v\n", result.Error)
 		}
+
 		fmt.Printf("%v\n", result)
 	}
 	a.Close()
 	return nil
 }
 
-func (c *kafkaClient) Produce(queueName string, value interface{}) error {
+func (c *kafkaClient) Produce(queueName string, key interface{}, value interface{}, opt ...interface{}) error {
 	deliveryChan := make(chan kafka.Event)
+	bvalue, _ := value.([]byte)
 	c.producer.Produce(&kafka.Message{
-		TopicPartition: kafka.TopicPartition{Topic: queueName, Partition: kafka.PartitionAny},
-		Value:          []byte(value),
+		TopicPartition: kafka.TopicPartition{Topic: &queueName, Partition: kafka.PartitionAny},
+		Value:          bvalue,
 	}, deliveryChan)
 	e := <-deliveryChan
 	m := e.(*kafka.Message)
@@ -63,11 +65,11 @@ func (c *kafkaClient) Produce(queueName string, value interface{}) error {
 	return nil
 }
 
-func (c *kafkaClient) Consume(queueName string, ) {
-
+func (c *kafkaClient) Consume(queueName string, opt ...interface{}) (interface{}, error) {
+	return nil, nil
 }
 
-func NewKafkaClient(mqAddr string) *IQueueClient, error {
+func NewKafkaClient(mqAddr string) (IQueueClient, error) {
 	c := &kafkaClient{}
 	p, err := kafka.NewProducer(&kafka.ConfigMap{"bootstrap.servers": mqAddr})
 	if err != nil {

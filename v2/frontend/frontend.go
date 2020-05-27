@@ -25,7 +25,7 @@ func (s *frontendServer) CreateJob(ctx context.Context, request *pb.JobRequest) 
 	go func() {
 		err := s.kfclient.CreateQueue(request.JobID)
 		errch <- err
-	}
+	}()
 	err := s.kfclient.CreateQueue(endQueueName(request.JobID))
 	if err != nil {
 		return nil, err
