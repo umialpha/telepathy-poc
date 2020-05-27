@@ -10,6 +10,11 @@ service FrontendSvc {
 	rpc close_job(JobRequest) returns (JobResponse);
 }
 
+service WorkerSvc {
+    rpc send_task (TaskRequest) returns (TaskResponse);
+    
+}
+
 message JobRequest {
 	string JobID = 1;
 	int32 reqNum = 2;

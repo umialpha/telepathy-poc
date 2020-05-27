@@ -3,9 +3,9 @@ package main
 import (
 	"context"
 	"os"
+	
 
 	"google.golang.org/grpc"
-
 	"telepathy.poc/mq"
 	pb "telepathy.poc/protos"
 )
@@ -14,13 +14,15 @@ func endQueaueName(que string) string {
 	return que + "-END"
 }
 
+var JOB_QUEUE string = "JOB_QUEUE"
+
 type frontendServer struct {
 	pb.UnimplementedFrontendSvcServer
 	kfclient *mq.IQueueClient
 }
 
 func (s *frontendServer) CreateJob(ctx context.Context, request *pb.JobRequest) (*pb.JobResponse, error) {
-	
+
 	errch := make(chan error)
 	go func() {
 		err := s.kfclient.CreateQueue(request.JobID)
@@ -34,6 +36,7 @@ func (s *frontendServer) CreateJob(ctx context.Context, request *pb.JobRequest) 
 	if err != nil {
 		return nil, err
 	}
+	go s.kfclient.Produce(JOB_QUEUE, request.JobID)
 	return &pb.JobResponse{JobID: request.JobId}, nil
 }
 
@@ -47,9 +50,24 @@ func (s *frontendServer) SendTask(ctx context.Context, request *pb.TaskRequest) 
 
 func (s *frontendServer) GetResponse(req *JobRequest, stream FrontendSvc_GetResponseServer) error {
 	reqNum := req.ReqNum
-	for i:=0;i<reqNum;i++ {
-		if err:= stream.Send()
+	jobID := req.JobID
+	abort := make(chan int)
+	defer func() {
+		abort <- 1
 	}
+	ch, err := s.kfclient.Consume(endQueaueName(jobID), abort)
+	if err != nil {
+		return err
+	}
+	for i := 0; i < reqNum; i++ {
+		val := <- ch
+		val = val.(int32)
+		resp := pb.TaskResponse{JobId:jobID, TaskID:value}
+		if err := stream.Send(resp); err != nil {
+			return err
+		}
+	}
+	
 }
 
 func (s *frontendServer) CloseJob(context.Context, *JobRequest) (*JobResponse, error) {

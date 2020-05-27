@@ -7,12 +7,22 @@ import (
 	pb "telepathy.poc/protos"
 )
 
-type WorkerServer struct {
-	pb.UnimplementedWorkerSvcServer
+func endQueaueName(que string) string {
+	return que + "-END"
 }
 
-func SendTask(ctx context.Context, req *pb.BackendTaskRequest) (*pb.BackendTaskResponse, error) {
-	return &pb.BackendTaskResponse{TaskID: req.TaskID}, nil
+type WorkerServer struct {
+	pb.UnimplementedWorkerSvcServer
+	kfclient interface{}
+}
+
+func (w *WorkerServer) SendTask(ctx context.Context, req *pb.TaskRequest) (*pb.TaskResponse, error) {
+	go w.doWork(req)
+	return &pb.TaskResponse{JobID: req.JobID, TaskID: req.TaskID}, nil
+}
+
+func (w *WorkerServer) doWork( req *pb.TaskRequest) {
+	kfclient.Produce(endQueaueName(req.JobID), req.TaskID)
 }
 
 func newServer() *WorkerServer {
