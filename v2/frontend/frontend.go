@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"os"
 
 	"google.golang.org/grpc"
@@ -77,6 +78,7 @@ func (s *frontendServer) CloseJob(context.Context, *pb.JobRequest) (*pb.JobRespo
 func newServer() pb.FrontendSvcServer {
 	s := &frontendServer{}
 	mqAddr := os.Getenv("MQ_ADDR")
+	fmt.Println("Get MQ Addr %v", mqAddr)
 	var err error
 	s.kfclient, err = mq.NewKafkaClient(mqAddr)
 	if err != nil {
