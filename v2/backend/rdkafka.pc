@@ -1,0 +1,10 @@
+prefix=c:/
+libdir=c:/cygwin64/lib/
+includedir=c:/cygwin64/usr/include
+
+Name: librdkafka
+Description: The Apache Kafka C/C++ library
+Version: 1.4.2
+Cflags: -I${includedir}
+Libs: -L${libdir} -lrdkafka
+Libs.private: -lssl -lcrypto -lcrypto -lz -ldl -lpthread -lrt
