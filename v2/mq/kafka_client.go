@@ -3,15 +3,15 @@ package mq
 import (
 	"context"
 	"fmt"
-	"time"
 	"os"
+	"time"
 
 	"github.com/confluentinc/confluent-kafka-go/kafka"
 )
 
 type kafkaClient struct {
 	IQueueClient
-	producer *kafka.Producer
+	producer   *kafka.Producer
 	brokerAddr string
 }
 
@@ -70,7 +70,7 @@ func (c *kafkaClient) Produce(queueName string, key interface{}, value interface
 func (c *kafkaClient) Consume(queueName string, abort <-chan int, opt ...interface{}) (<-chan interface{}, error) {
 	ch := make(chan interface{}, 1000)
 	consumer, err := kafka.NewConsumer(&kafka.ConfigMap{
-		"bootstrap.servers": c.brokerAddr,
+		"bootstrap.servers":     c.brokerAddr,
 		"broker.address.family": "v4",
 		"group.id":              queueName,
 		"session.timeout.ms":    6000,
@@ -79,32 +79,32 @@ func (c *kafkaClient) Consume(queueName string, abort <-chan int, opt ...interfa
 		fmt.Fprintf(os.Stderr, "Failed to create consumer: %s\n", err)
 		return nil, err
 	}
-	defer consumer.close()
-	err = consumer.SubscribeTopics([queueName], nil)
+	defer consumer.Close()
+	err = consumer.SubscribeTopics([]string{queueName}, nil)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to SubscribeTopics : %s\n", queueName)
 		return nil, err
 	}
 	for {
 		select {
-			case <-abort:
-				fmt.Printf("Caught abort")
-				return
-			default:
-				ev := consumer.Poll(100)
-				if ev == nil {
-					continue
+		case <-abort:
+			fmt.Printf("Caught abort")
+			return nil, nil
+		default:
+			ev := consumer.Poll(100)
+			if ev == nil {
+				continue
+			}
+			switch e := ev.(type) {
+			case *kafka.Message:
+				fmt.Printf("%% Message on %s:\n%s\n",
+					e.TopicPartition, string(e.Value))
+				if e.Headers != nil {
+					fmt.Printf("%% Headers: %v\n", e.Headers)
 				}
-				switch e := ev.(type) {
-					case *kafka.Message:
-						fmt.Printf("%% Message on %s:\n%s\n",
-							e.TopicPartition, string(e.Value))
-						if e.Headers != nil {
-							fmt.Printf("%% Headers: %v\n", e.Headers)
-						}
-						ch <- e.Value
-				}
-		}	
+				ch <- e.Value
+			}
+		}
 	}
 	return ch, nil
 }
