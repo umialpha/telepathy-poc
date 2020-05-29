@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"net"
 	"os"
 
 	"google.golang.org/grpc"
@@ -90,4 +91,10 @@ func newServer() pb.FrontendSvcServer {
 func main() {
 	grpcServer := grpc.NewServer()
 	pb.RegisterFrontendSvcServer(grpcServer, newServer())
+	lis, err := net.Listen("tcp", fmt.Sprintf("localhost:%s", os.Getenv("PORT")))
+	if err != nil {
+		fmt.Println("Failed to Start Server %v", err)
+		return
+	}
+	grpcServer.Serve(lis)
 }
