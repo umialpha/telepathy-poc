@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: telepathy-fe-deployment
+  namespace: telepathy
+  labels:
+    app: telepathy-fe
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: telepathy-be
+  template:
+    metadata:
+      labels:
+        app: telepathy-be
+    spec:
+      containers:
+      - name: telepathy-poc
+        image: kuberegistry0.azurecr.io/telepathy.poc:v1
+        command: ["/go/bin/backend"]
+        env:
+          - name: MQ_ADDR
+            value: 10.0.30.99:9092
+          - name: WORKER_LIST
+            value: x

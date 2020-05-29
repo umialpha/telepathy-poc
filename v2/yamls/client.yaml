@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Pod
+metadata:
+  name: telepathy-client
+  namespace: telepathy
+  labels:
+    app: telepathy-client
+spec:
+    containers:
+    - name: telepathy-poc-client
+    image: kuberegistry0.azurecr.io/telepathy.poc:v1
+    command: ["/go/bin/client"]
+    env:
+        - name: FRONT_ADDR
+          value: 10.0.30.99:9092
+        - name: REQ_NUM
+          value: 10000
+        - name: JOB_ID
+          value: tjob-0
