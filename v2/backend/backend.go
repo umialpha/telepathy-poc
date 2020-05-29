@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"math/rand"
 	"os"
@@ -30,7 +31,7 @@ func (s *BackendServer) run() {
 	}
 	for val := range ch {
 		jobID := val.(string)
-		s.startJob(jobID)
+		go s.startJob(jobID)
 	}
 }
 
@@ -46,6 +47,7 @@ func (s *BackendServer) startJob(jobID string) {
 	}
 	for val := range ch {
 		taskID := val.(int32)
+		fmt.Println("Get Task %d", taskID)
 		go s.dispatchTask(jobID, taskID)
 	}
 }
@@ -68,9 +70,10 @@ func NewBackendServer() *BackendServer {
 	workerAddrs := os.Getenv("WORKER_LIST")
 	workerList := strings.Split(workerAddrs, " ")
 	for _, addr := range workerList {
-		conn, err := grpc.Dial(addr)
+		fmt.Println("Worker ADDR %v", addr)
+		conn, err := grpc.Dial(addr, grpc.WithInsecure())
 		if err != nil {
-			log.Fatalf("fail to dial: %v", err)
+			fmt.Println("fail to dial: %v", err)
 			conn.Close()
 			continue
 		}
@@ -82,7 +85,5 @@ func NewBackendServer() *BackendServer {
 
 func main() {
 	s := NewBackendServer()
-	go s.run()
-	forever := make(chan int)
-	<-forever
+	s.run()
 }

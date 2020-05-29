@@ -2,6 +2,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: telepathy-wk-svc
+  namespace: telepathy
   labels:
     app: telepathy-wk
 spec:
@@ -22,6 +23,7 @@ metadata:
   labels:
     app: telepathy-wk
 spec:
+  serviceName: "telepathy-wk"
   replicas: 5
   selector:
     matchLabels:
@@ -37,9 +39,9 @@ spec:
         command: ["/go/bin/worker"]
         env:
           - name: MQ_ADDR
-            value: 10.0.30.99:9092
+            value: "10.0.30.99:9092"
           - name: PORT
-            value: 4527
+            value: "4527"
 
 
             

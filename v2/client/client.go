@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -62,7 +63,8 @@ func NewTClient(addr string) *TClient {
 	c := &TClient{
 		serverAddr: addr,
 	}
-	conn, err := grpc.Dial(addr)
+
+	conn, err := grpc.Dial(addr, grpc.WithInsecure())
 	if err != nil {
 		log.Fatalf("fail to dial: %v", err)
 		return nil
@@ -94,5 +96,7 @@ func main() {
 	}
 	sort.Slice(costs, func(i, j int) bool { return costs[i] < costs[j] })
 	sort.Slice(cpus, func(i, j int) bool { return cpus[i] < cpus[j] })
+	fmt.Println("costs: P50: %v, P99: %v", costs[len(costs)/2], costs[len(costs)-1])
+	fmt.Println("cpu: P50: %v, P99: %v", cpus[len(cpus)/2], cpus[len(cpus)-1])
 	// fmt.Println("")
 }

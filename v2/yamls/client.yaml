@@ -1,4 +1,4 @@
-apiVersion: apps/v1
+apiVersion: v1
 kind: Pod
 metadata:
   name: telepathy-client
@@ -8,12 +8,12 @@ metadata:
 spec:
     containers:
     - name: telepathy-poc-client
-    image: kuberegistry0.azurecr.io/telepathy.poc:v1
-    command: ["/go/bin/client"]
-    env:
+      image: kuberegistry0.azurecr.io/telepathy.poc:v3
+      command: ["/go/bin/client"]
+      env:
         - name: FRONT_ADDR
-          value: 10.0.30.99:9092
+          value: "telepathy-fe-deployment:4520" 
         - name: REQ_NUM
-          value: 10000
+          value: "10000"
         - name: JOB_ID
-          value: tjob-0
+          value: "tjob-0"
