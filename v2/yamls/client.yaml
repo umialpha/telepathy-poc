@@ -10,5 +10,5 @@ spec:
     - name: telepathy-poc-client
       image: kuberegistry0.azurecr.io/telepathy.poc:v5
       command: ["/go/bin/client"]
-      args: ["-FRONT_ADDR", "telepathy-fe-svc.  namespace: telepathy.svc.cluster.local:4001", "-REQ_NUM", "10000", "-JOB_ID", "k8s-job-0"]
+      args: ["-FRONT_ADDR", "telepathy-fe-svc.telepathy.svc.cluster.local:4001", "-REQ_NUM", "10000", "-JOB_ID", "k8s-job-0"]
        
