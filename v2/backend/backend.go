@@ -55,9 +55,9 @@ func (s *BackendServer) startJob(jobID string) {
 			log.Fatalf("StartJob err %v.\n", err)
 			return
 		}
-		taskID := strconv.Atoi(string(val))
+		taskID, _ := strconv.Atoi(string(val))
 		fmt.Println("Get Task %d", taskID)
-		go s.dispatchTask(jobID, taskID)
+		go s.dispatchTask(jobID, int32(taskID))
 	}
 }
 

@@ -21,13 +21,6 @@ func GetBytes(key interface{}) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func GetInterface(bytes []byte) (interface{}, error) {
-	var buff bytes.buffer
-	buff.Write(bytes)
-	dec := gob.NewDecoder(&buff)
-
-}
-
 type kafkaClient struct {
 	IQueueClient
 	producer   *kafka.Producer
@@ -69,9 +62,6 @@ func (c *kafkaClient) CreateQueue(name string, opt ...interface{}) error {
 
 func (c *kafkaClient) Produce(queueName string, value []byte, opt ...interface{}) error {
 	deliveryChan := make(chan kafka.Event)
-		fmt.Println("Cannot convert value to []byte ", err)
-		return err
-	}
 	c.producer.Produce(&kafka.Message{
 		TopicPartition: kafka.TopicPartition{Topic: &queueName, Partition: kafka.PartitionAny},
 		Value:          value,

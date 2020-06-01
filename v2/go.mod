@@ -12,4 +12,5 @@ require (
 	github.com/stretchr/testify v1.5.1 // indirect
 	google.golang.org/grpc v1.29.1
 	google.golang.org/protobuf v1.23.0
+	gopkg.in/confluentinc/confluent-kafka-go.v1 v1.4.2
 )

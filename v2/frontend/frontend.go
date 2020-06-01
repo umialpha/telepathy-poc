@@ -71,9 +71,9 @@ func (s *frontendServer) GetResponse(req *pb.JobRequest, stream pb.FrontendSvc_G
 		}
 		val := <-ch
 
-		v := strconv.Atoi(string(val))
+		v, _ := strconv.Atoi(string(val))
 		fmt.Println("Got Value ", v)
-		resp := &pb.TaskResponse{JobID: jobID, TaskID: v}
+		resp := &pb.TaskResponse{JobID: jobID, TaskID: int32(v)}
 		if err := stream.Send(resp); err != nil {
 			fmt.Println("stream Send Err:%v", err)
 			return err
