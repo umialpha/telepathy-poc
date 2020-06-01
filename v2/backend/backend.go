@@ -27,11 +27,13 @@ func (s *BackendServer) run() {
 	defer func() {
 		abort <- 1
 	}()
-	ch, err := s.kfclient.Consume(JOB_QUEUE, abort)
-	if err != nil {
-		return
-	}
+	ch, errCh := s.kfclient.Consume(JOB_QUEUE, abort)
+
 	for val := range ch {
+		err := <-errCh
+		if err != nil {
+			return
+		}
 		jobID := val.(string)
 		go s.startJob(jobID)
 	}
@@ -43,12 +45,14 @@ func (s *BackendServer) startJob(jobID string) {
 	defer func() {
 		abort <- 1
 	}()
-	ch, err := s.kfclient.Consume(jobID, abort)
-	if err != nil {
-		log.Fatalf("StartJob err %v.\n", err)
-		return
-	}
+	ch, errCh := s.kfclient.Consume(jobID, abort)
+
 	for val := range ch {
+		err := <-errCh
+		if err != nil {
+			log.Fatalf("StartJob err %v.\n", err)
+			return
+		}
 		taskID := val.(int32)
 		fmt.Println("Get Task %d", taskID)
 		go s.dispatchTask(jobID, taskID)

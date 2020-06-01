@@ -60,12 +60,14 @@ func (s *frontendServer) GetResponse(req *pb.JobRequest, stream pb.FrontendSvc_G
 	defer func() {
 		abort <- 1
 	}()
-	ch, err := s.kfclient.Consume(endQueueName(jobID), abort)
-	if err != nil {
-		fmt.Println("Consume Backend Response Err: %v", err)
-		return err
-	}
+	ch, errCh := s.kfclient.Consume(endQueueName(jobID), abort)
+
 	for i := int32(0); i < reqNum; i++ {
+		err := <-errCh
+		if err != nil {
+			fmt.Println("Consume Backend Response Err: %v", err)
+			return err
+		}
 		val := <-ch
 		v := val.(int32)
 		fmt.Println("Got Value ", v)

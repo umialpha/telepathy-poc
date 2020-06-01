@@ -83,25 +83,28 @@ func (c *kafkaClient) Produce(queueName string, key interface{}, value interface
 	return nil
 }
 
-func (c *kafkaClient) Consume(queueName string, abort <-chan int, opt ...interface{}) (<-chan interface{}, error) {
+func (c *kafkaClient) Consume(queueName string, abort <-chan int, opt ...interface{}) (<-chan interface{}, <-error) {
 	ch := make(chan interface{}, 1000)
-	consumer, err := kafka.NewConsumer(&kafka.ConfigMap{
-		"bootstrap.servers":     c.brokerAddr,
-		"broker.address.family": "v4",
-		"group.id":              queueName,
-		"session.timeout.ms":    6000,
-		"auto.offset.reset":     "earliest"})
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to create consumer: %s\n", err)
-		return nil, err
-	}
-	defer consumer.Close()
-	err = consumer.SubscribeTopics([]string{queueName}, nil)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to SubscribeTopics : %s\n", queueName)
-		return nil, err
-	}
+	errCh := error(nil)
 	go func() {
+		consumer, err := kafka.NewConsumer(&kafka.ConfigMap{
+			"bootstrap.servers":     c.brokerAddr,
+			"broker.address.family": "v4",
+			"group.id":              queueName,
+			"session.timeout.ms":    6000,
+			"auto.offset.reset":     "earliest"})
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to create consumer: %s\n", err)
+			ch <- nil, errCh <- err
+			return
+		}
+		defer consumer.Close()
+		err = consumer.SubscribeTopics([]string{queueName}, nil)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to SubscribeTopics : %s\n", queueName)
+			ch <- nil, errCh <- err
+			return
+		}
 		for {
 			select {
 			case <-abort:
@@ -124,7 +127,7 @@ func (c *kafkaClient) Consume(queueName string, abort <-chan int, opt ...interfa
 			}
 		}
 	}()
-	return ch, nil
+	return ch, errCh
 }
 
 func NewKafkaClient(mqAddr string) (IQueueClient, error) {
