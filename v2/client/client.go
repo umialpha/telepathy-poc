@@ -39,21 +39,23 @@ func (c *TClient) GetResponse(jobID string, reqNum int32) chan int {
 		close(ch)
 		return ch
 	}
+	go func() {
 
-	for {
-		resp, err := stream.Recv()
-		if err == io.EOF {
-			close(ch)
-			break
-		}
-		if err != nil {
-			fmt.Println("GetStream err: ", err)
-			close(ch)
-			break
-		}
-		ch <- int(resp.TaskID)
+		for {
+			resp, err := stream.Recv()
+			if err == io.EOF {
+				close(ch)
+				break
+			}
+			if err != nil {
+				fmt.Println("GetStream err: ", err)
+				close(ch)
+				break
+			}
+			ch <- int(resp.TaskID)
 
-	}
+		}
+	}()
 	return ch
 }
 
@@ -98,7 +100,10 @@ func main() {
 			cpus = append(cpus, cpu[0])
 		}
 	}
+	i := 0
 	for t := range client.GetResponse(jobID, int32(request)) {
+		i++
+		fmt.Println("GetResponse Seq", i)
 		costs = append(costs, time.Since(startTimes[t]))
 	}
 	sort.Slice(costs, func(i, j int) bool { return costs[i] < costs[j] })
