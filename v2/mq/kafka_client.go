@@ -91,8 +91,8 @@ func (c *kafkaClient) Consume(queueName string, abort <-chan int, opt ...interfa
 			"auto.offset.reset":     "earliest"})
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Failed to create consumer: %s\n", err)
-			ch <- nil
 			errCh <- err
+			close(ch)
 			return
 		}
 		defer consumer.Close()
@@ -120,7 +120,6 @@ func (c *kafkaClient) Consume(queueName string, abort <-chan int, opt ...interfa
 				case *kafka.Message:
 					fmt.Printf("Message on %s:\n%s\n",
 						e.TopicPartition, string(e.Value))
-					errCh <- nil
 					ch <- e.Value
 				}
 			}

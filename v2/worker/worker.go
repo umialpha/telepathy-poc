@@ -31,7 +31,7 @@ func (w *WorkerServer) SendTask(ctx context.Context, req *pb.TaskRequest) (*pb.T
 }
 
 func (w *WorkerServer) doWork(req *pb.TaskRequest) {
-	w.kfclient.Produce(endQueueName(req.JobID), nil, &req.TaskID)
+	w.kfclient.Produce(endQueueName(req.JobID), []byte(fmt.Sprintf("%d", req.TaskID)))
 }
 
 func newServer() *WorkerServer {
