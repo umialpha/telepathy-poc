@@ -85,7 +85,7 @@ func (c *kafkaClient) Produce(queueName string, key interface{}, value interface
 
 func (c *kafkaClient) Consume(queueName string, abort <-chan int, opt ...interface{}) (<-chan interface{}, <-error) {
 	ch := make(chan interface{}, 1000)
-	errCh := error(nil)
+	errCh := make(chan error)
 	go func() {
 		consumer, err := kafka.NewConsumer(&kafka.ConfigMap{
 			"bootstrap.servers":     c.brokerAddr,
