@@ -14,3 +14,5 @@ RUN go install telepathy.poc/frontend
 RUN go install telepathy.poc/backend
 
 RUN go install telepathy.poc/worker
+
+RUN go install telepathy.poc/test/client_frontend

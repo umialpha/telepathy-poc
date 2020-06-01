@@ -24,7 +24,7 @@ metadata:
   labels:
     app: telepathy-cl-fe
 spec:
-  replicas: 1
+  replicas: 16
   selector:
     matchLabels:
       app: telepathy-cl-fe
@@ -36,24 +36,9 @@ spec:
       containers:
       - name: telepathy-poc
         image: kuberegistry0.azurecr.io/telepathy.poc.client-fe:v0
-        command: ["/go/bin/frontend"]
+        command: ["/go/bin/client_frontend"]
         args: ["-MQ_ADDR", "bootstrap.kafka.svc.cluster.local:9092", "-PORT", "6001", '-c', "2"]
         ports:
         - containerPort: 6001
----
 
-apiVersion: v1
-kind: Pod
-metadata:
-  name: telepathy-client
-  namespace: telepathy
-  labels:
-    app: telepathy-client
-spec:
-  containers:
-  - name: telepathy-poc-client
-    image: kuberegistry0.azurecr.io/telepathy.poc.client-fe:v0
-    command: ["/go/bin/test/client_frontend"]
-    args: ["-FRONT_ADDR", "telepathy-cl-fe-svc.telepathy.svc.cluster.local:6001", "-REQ_NUM", "100000", "-JOB_ID", "k8s-job-1"]
 
-      

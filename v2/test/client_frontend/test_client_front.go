@@ -96,6 +96,7 @@ var MQ_ADDR = flag.String("MQ_ADDR", "0.0.0.0:9092", "MQ ADDR")
 var PORT = flag.String("PORT", "4001", "server port")
 
 func Client() {
+	startTime := time.Now()
 	addr := *FRONT_ADDR
 	request := *REQ_NUM
 	jobID := *JOB_ID
@@ -108,12 +109,12 @@ func Client() {
 	var wt sync.WaitGroup
 	wt.Add(request)
 	for t := 0; t < request; t++ {
-		go func() {
+		go func(i int) {
 			defer wt.Done()
 			now := time.Now()
 			client.SendTask(jobID, t)
-			sm.Store(t, time.Since(now))
-		}()
+			sm.Store(i, time.Since(now))
+		}(t)
 
 		if t%100 == 0 {
 			cpu, _ := cpu.Percent(0, false)
@@ -121,6 +122,7 @@ func Client() {
 		}
 	}
 	wt.Wait()
+	end := time.Now()
 	for t := 0; t < request; t++ {
 		val, ok := sm.Load(t)
 		if !ok {
@@ -131,7 +133,9 @@ func Client() {
 	}
 	sort.Slice(costs, func(i, j int) bool { return costs[i] < costs[j] })
 	sort.Slice(cpus, func(i, j int) bool { return cpus[i] < cpus[j] })
-	fmt.Println("costs: P50: %v, P99: %v", costs[len(costs)/2], costs[len(costs)-1])
+	fmt.Println("ALL Cost", end.Sub(startTime))
+	fmt.Println("throughput", int64(request)/(end.Sub(startTime).Milliseconds())*1000)
+	fmt.Println("delay: P50: %v, P99: %v", costs[len(costs)/2], costs[len(costs)-1])
 	fmt.Println("cpu: P50: %v, P99: %v", cpus[len(cpus)/2], cpus[len(cpus)-1])
 }
 
@@ -177,7 +181,7 @@ func Server() {
 
 func main() {
 	flag.Parse()
-	if *c == "2" {
+	if *c == "1" {
 		Client()
 	} else {
 		Server()

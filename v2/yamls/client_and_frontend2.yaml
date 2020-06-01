@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: telepathy-client
+  namespace: telepathy
+  labels:
+    app: telepathy-client
+spec:
+  containers:
+  - name: telepathy-poc-client
+    image: kuberegistry0.azurecr.io/telepathy.poc.client-fe:v0
+    command: ["/go/bin/client_frontend"]
+    args: ["-FRONT_ADDR", "telepathy-cl-fe-svc.telepathy.svc.cluster.local:6001", "-REQ_NUM", "500000", "-JOB_ID", "k8s-job-1"]
+
