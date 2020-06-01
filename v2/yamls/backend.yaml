@@ -21,6 +21,6 @@ spec:
         command: ["/go/bin/backend"]
         env:
           - name: MQ_ADDR
-            value: "10.0.30.99:9092"
+            value: "bootstrap.kafka.svc.cluster.local:9092"
           - name: WORKER_LIST
             value: "telepathy-wk-stateful-0.telepathy-wk-svc:4527 telepathy-wk-stateful-1.telepathy-wk-svc:4527 telepathy-wk-stateful-2.telepathy-wk-svc:4527 telepathy-wk-stateful-3.telepathy-wk-svc:4527 telepathy-wk-stateful-4.telepathy-wk-svc:4527" 

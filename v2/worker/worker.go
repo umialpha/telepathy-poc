@@ -2,15 +2,18 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"log"
 	"net"
-	"os"
 
 	"google.golang.org/grpc"
 	"telepathy.poc/mq"
 	pb "telepathy.poc/protos"
 )
+
+var MQADDR = flag.String("MQ_ADDR", "localhost:9092", "mq addr")
+var PORT = flag.String("PORT", "4002", "server port")
 
 func endQueueName(que string) string {
 	return que + "-END"
@@ -22,6 +25,7 @@ type WorkerServer struct {
 }
 
 func (w *WorkerServer) SendTask(ctx context.Context, req *pb.TaskRequest) (*pb.TaskResponse, error) {
+	fmt.Println("SendTask", req.JobID, req.TaskID)
 	go w.doWork(req)
 	return &pb.TaskResponse{JobID: req.JobID, TaskID: req.TaskID}, nil
 }
@@ -31,7 +35,7 @@ func (w *WorkerServer) doWork(req *pb.TaskRequest) {
 }
 
 func newServer() *WorkerServer {
-	mqAddr := os.Getenv("MQ_ADDR")
+	mqAddr := *MQADDR
 	w := &WorkerServer{}
 	c, err := mq.NewKafkaClient(mqAddr)
 	if err != nil {
@@ -43,9 +47,10 @@ func newServer() *WorkerServer {
 }
 
 func main() {
+	flag.Parse()
 	grpcServer := grpc.NewServer()
 	pb.RegisterWorkerSvcServer(grpcServer, newServer())
-	lis, err := net.Listen("tcp", fmt.Sprintf("localhost:%s", os.Getenv("PORT")))
+	lis, err := net.Listen("tcp", fmt.Sprintf("localhost:%s", *PORT))
 	if err != nil {
 		fmt.Println("Failed to Start Server %v", err)
 		return

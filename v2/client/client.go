@@ -2,12 +2,11 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"io"
 	"log"
-	"os"
 	"sort"
-	"strconv"
 	"time"
 
 	"github.com/shirou/gopsutil/cpu"
@@ -49,6 +48,10 @@ func (c *TClient) GetResponse(jobID string) chan int {
 			close(ch)
 			break
 		}
+		if err != nil {
+			fmt.Println("GetStream err: ", err)
+			continue
+		}
 		ch <- int(resp.TaskID)
 
 	}
@@ -74,10 +77,15 @@ func NewTClient(addr string) *TClient {
 	return c
 }
 
+var FRONT_ADDR = flag.String("FRONT_ADDR", "localhost:4001", "frontend server ip:port")
+var REQ_NUM = flag.Int("REQ_NUM", 1, "requeset num")
+var JOB_ID = flag.String("JOB_ID", "JOB-0", "JOB ID")
+
 func main() {
-	addr := os.Getenv("FRONT_ADDR")
-	request, _ := strconv.Atoi(os.Getenv("REQ_NUM"))
-	jobID := os.Getenv("JOB_ID")
+	flag.Parse()
+	addr := *FRONT_ADDR
+	request := *REQ_NUM
+	jobID := *JOB_ID
 	client := NewTClient(addr)
 	client.CreateJob(jobID, int32(request))
 	startTimes := map[int]time.Time{}

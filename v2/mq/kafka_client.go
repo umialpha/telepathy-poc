@@ -1,13 +1,25 @@
 package mq
 
 import (
+	"bytes"
 	"context"
+	"encoding/gob"
 	"fmt"
 	"os"
 	"time"
 
 	"github.com/confluentinc/confluent-kafka-go/kafka"
 )
+
+func GetBytes(key interface{}) ([]byte, error) {
+	var buf bytes.Buffer
+	enc := gob.NewEncoder(&buf)
+	err := enc.Encode(key)
+	if err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
 
 type kafkaClient struct {
 	IQueueClient
@@ -29,8 +41,8 @@ func (c *kafkaClient) CreateQueue(name string, opt ...interface{}) error {
 		ctx,
 		[]kafka.TopicSpecification{{
 			Topic:             name,
-			NumPartitions:     3,
-			ReplicationFactor: 3}},
+			NumPartitions:     1,
+			ReplicationFactor: 1}},
 
 		kafka.SetAdminOperationTimeout(60*time.Second))
 	if err != nil {
@@ -50,7 +62,11 @@ func (c *kafkaClient) CreateQueue(name string, opt ...interface{}) error {
 
 func (c *kafkaClient) Produce(queueName string, key interface{}, value interface{}, opt ...interface{}) error {
 	deliveryChan := make(chan kafka.Event)
-	bvalue, _ := value.([]byte)
+	bvalue, err := GetBytes(value)
+	if err != nil {
+		fmt.Println("Cannot convert value to []byte ", err)
+		return err
+	}
 	c.producer.Produce(&kafka.Message{
 		TopicPartition: kafka.TopicPartition{Topic: &queueName, Partition: kafka.PartitionAny},
 		Value:          bvalue,
@@ -61,8 +77,8 @@ func (c *kafkaClient) Produce(queueName string, key interface{}, value interface
 		fmt.Printf("Delivery failed: %v\n", m.TopicPartition.Error)
 		return m.TopicPartition.Error
 	} else {
-		fmt.Printf("Delivered message to topic %s [%d] at offset %v\n",
-			*m.TopicPartition.Topic, m.TopicPartition.Partition, m.TopicPartition.Offset)
+		fmt.Printf("Delivered message to topic %s, message: %s\n",
+			*m.TopicPartition.Topic, m.Value)
 	}
 	return nil
 }
@@ -85,27 +101,29 @@ func (c *kafkaClient) Consume(queueName string, abort <-chan int, opt ...interfa
 		fmt.Fprintf(os.Stderr, "Failed to SubscribeTopics : %s\n", queueName)
 		return nil, err
 	}
-	for {
-		select {
-		case <-abort:
-			fmt.Printf("Caught abort")
-			return nil, nil
-		default:
-			ev := consumer.Poll(100)
-			if ev == nil {
-				continue
-			}
-			switch e := ev.(type) {
-			case *kafka.Message:
-				fmt.Printf("%% Message on %s:\n%s\n",
-					e.TopicPartition, string(e.Value))
-				if e.Headers != nil {
-					fmt.Printf("%% Headers: %v\n", e.Headers)
+	go func() {
+		for {
+			select {
+			case <-abort:
+				fmt.Printf("Caught abort")
+				return
+			default:
+				ev := consumer.Poll(100)
+				if ev == nil {
+					continue
 				}
-				ch <- e.Value
+				switch e := ev.(type) {
+				case *kafka.Message:
+					fmt.Printf("%% Message on %s: %s",
+						e.TopicPartition, string(e.Value))
+					if e.Headers != nil {
+						fmt.Printf("%% Headers: %v\n", e.Headers)
+					}
+					ch <- e.Value
+				}
 			}
 		}
-	}
+	}()
 	return ch, nil
 }
 

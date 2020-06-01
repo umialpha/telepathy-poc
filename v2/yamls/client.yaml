@@ -12,8 +12,8 @@ spec:
       command: ["/go/bin/client"]
       env:
         - name: FRONT_ADDR
-          value: "telepathy-fe-deployment:4520" 
+          value: "10.0.108.17:4520" 
         - name: REQ_NUM
           value: "10000"
         - name: JOB_ID
-          value: "tjob-0"
+          value: "tjob-1"

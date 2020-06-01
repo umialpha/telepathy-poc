@@ -2,10 +2,10 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"log"
 	"math/rand"
-	"os"
 	"strings"
 
 	"google.golang.org/grpc"
@@ -14,6 +14,8 @@ import (
 )
 
 var JOB_QUEUE string = "JOB_QUEUE"
+var MQ_ADDR = flag.String("MQ_ADDR", "localhost:9092", "MQ ADDR")
+var WORKER_LIST = flag.String("WORKER_LIST", "localhost:4002", "Woerker list")
 
 type BackendServer struct {
 	workers  []pb.WorkerSvcClient
@@ -36,6 +38,7 @@ func (s *BackendServer) run() {
 }
 
 func (s *BackendServer) startJob(jobID string) {
+	fmt.Println("startJob", jobID)
 	abort := make(chan int)
 	defer func() {
 		abort <- 1
@@ -59,7 +62,7 @@ func (s *BackendServer) dispatchTask(jobID string, taskID int32) {
 
 func NewBackendServer() *BackendServer {
 
-	broker := os.Getenv("MQ_ADDR")
+	broker := *MQ_ADDR
 	s := &BackendServer{}
 	c, err := mq.NewKafkaClient(broker)
 	if err != nil {
@@ -67,7 +70,7 @@ func NewBackendServer() *BackendServer {
 		return nil
 	}
 	s.kfclient = c
-	workerAddrs := os.Getenv("WORKER_LIST")
+	workerAddrs := *WORKER_LIST
 	workerList := strings.Split(workerAddrs, " ")
 	for _, addr := range workerList {
 		fmt.Println("Worker ADDR %v", addr)
@@ -84,6 +87,7 @@ func NewBackendServer() *BackendServer {
 }
 
 func main() {
+	flag.Parse()
 	s := NewBackendServer()
 	s.run()
 }
