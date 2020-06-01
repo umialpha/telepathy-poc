@@ -31,11 +31,11 @@ func (c *TClient) SendTask(jobID string, taskID int) {
 	c.client.SendTask(ctx, &pb.TaskRequest{JobID: jobID, TaskID: int32(taskID)})
 }
 
-func (c *TClient) GetResponse(jobID string) chan int {
+func (c *TClient) GetResponse(jobID string, reqNum int32) chan int {
 	ch := make(chan int, 10)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
-	stream, err := c.client.GetResponse(ctx, &pb.JobRequest{JobID: jobID})
+	stream, err := c.client.GetResponse(ctx, &pb.JobRequest{JobID: jobID, ReqNum: reqNum})
 	if err != nil {
 		log.Fatalf("GetResponse error %v.\n", err)
 		close(ch)
@@ -99,7 +99,7 @@ func main() {
 			cpus = append(cpus, cpu[0])
 		}
 	}
-	for t := range client.GetResponse(jobID) {
+	for t := range client.GetResponse(jobID, int32(request)) {
 		costs = append(costs, time.Since(startTimes[t]))
 	}
 	sort.Slice(costs, func(i, j int) bool { return costs[i] < costs[j] })

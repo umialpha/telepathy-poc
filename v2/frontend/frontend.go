@@ -45,7 +45,7 @@ func (s *frontendServer) CreateJob(ctx context.Context, request *pb.JobRequest) 
 }
 
 func (s *frontendServer) SendTask(ctx context.Context, request *pb.TaskRequest) (*pb.TaskResponse, error) {
-	fmt.Println("SendTask JobID: %v, TaskID: %v", request.JobID, request.TaskID)
+	fmt.Println("SendTask JobID TaskID: ", request.JobID, request.TaskID)
 	go s.kfclient.Produce(request.JobID, nil, &request.TaskID)
 
 	return &pb.TaskResponse{JobID: request.JobID, TaskID: request.TaskID}, nil
@@ -53,7 +53,7 @@ func (s *frontendServer) SendTask(ctx context.Context, request *pb.TaskRequest) 
 }
 
 func (s *frontendServer) GetResponse(req *pb.JobRequest, stream pb.FrontendSvc_GetResponseServer) error {
-	fmt.Println("GetResponse JobID: %v", req.JobID)
+	fmt.Println("GetResponse JobID: ", req.JobID)
 	reqNum := req.ReqNum
 	jobID := req.JobID
 	abort := make(chan int)
