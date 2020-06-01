@@ -88,21 +88,24 @@ func NewTClient(addr string) *TClient {
 	return c
 }
 
-var FRONT_ADDR = flag.String("FRONT_ADDR", "localhost:4001", "frontend server ip:port")
+var FRONT_ADDR = flag.String("FRONT_ADDR", "localhost", "frontend server ip:port")
 var REQ_NUM = flag.Int("REQ_NUM", 1, "requeset num")
 var JOB_ID = flag.String("JOB_ID", "JOB-0", "JOB ID")
 var c = flag.String("c", "1", "client side")
 var MQ_ADDR = flag.String("MQ_ADDR", "0.0.0.0:9092", "MQ ADDR")
-var PORT = flag.String("PORT", "4001", "server port")
+var PORT = flag.String("PORT", "6001", "server port")
+var serverNum = flag.Int("serverNum", 16, "server num")
 
 func Client() {
 	startTime := time.Now()
 	addr := *FRONT_ADDR
 	request := *REQ_NUM
 	jobID := *JOB_ID
-	fmt.Println("Flags:", addr, request, jobID)
-	client := NewTClient(addr)
-	client.CreateJob(jobID, int32(request))
+	fmt.Println("Flags:", addr, request, jobID, *serverNum)
+	var clients []*TClient
+	for i := 0; i < *serverNum; i++ {
+		clients = append(clients, NewTClient(fmt.Sprintf("%s-%d:%s", addr, i, *PORT)))
+	}
 	var costs []time.Duration
 	var cpus []float64
 	var sm sync.Map
@@ -112,7 +115,7 @@ func Client() {
 		go func(i int) {
 			defer wt.Done()
 			now := time.Now()
-			client.SendTask(jobID, t)
+			client[t%*serverNum].SendTask(jobID, t)
 			sm.Store(i, time.Since(now))
 		}(t)
 
