@@ -55,16 +55,19 @@ func (s *BackendServer) startJob(jobID string) {
 	}()
 	ch, errCh := s.kfclient.Consume(jobID, abort)
 
-	for val := range ch {
-		err := <-errCh
-		if err != nil {
-			log.Fatalf("StartJob err %v.\n", err)
-			return
+	for {
+		select {
+		case err := <-errCh:
+			fmt.Println("Consume Task Queue Error", err)
+			continue
+		case val := <-ch:
+			taskID, _ := strconv.Atoi(string(val))
+			fmt.Println("Get Task %d", taskID)
+			go s.dispatchTask(jobID, int32(taskID))
+
 		}
-		taskID, _ := strconv.Atoi(string(val))
-		fmt.Println("Get Task %d", taskID)
-		go s.dispatchTask(jobID, int32(taskID))
 	}
+
 }
 
 func (s *BackendServer) dispatchTask(jobID string, taskID int32) {
