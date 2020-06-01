@@ -15,8 +15,8 @@ import (
 )
 
 var JOB_QUEUE string = "JOB_QUEUE"
-var MQ_ADDR = flag.String("MQ_ADDR", "localhost:9092", "MQ ADDR")
-var WORKER_LIST = flag.String("WORKER_LIST", "localhost:4002", "Woerker list")
+var MQ_ADDR = flag.String("MQ_ADDR", "0.0.0.0:9092", "MQ ADDR")
+var WORKER_LIST = flag.String("WORKER_LIST", "0.0.0.0:4002", "Worker list")
 
 type BackendServer struct {
 	workers  []pb.WorkerSvcClient
