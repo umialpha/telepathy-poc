@@ -35,9 +35,9 @@ spec:
       - name: telepathy-poc
         image: kuberegistry0.azurecr.io/telepathy.poc:v5
         command: ["/go/bin/frontend"]
-        args: ["-MQ_ADDR", "bootstrap.kafka.svc.cluster.local:9092", "-PORT": "4001"]
+        args: ["-MQ_ADDR", "bootstrap.kafka.svc.cluster.local:9092", "-PORT", "4001"]
         ports:
-          - containerPort: 4001
+        - containerPort: 4001
   
         
 
