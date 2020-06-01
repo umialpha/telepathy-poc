@@ -28,6 +28,51 @@ import (
 	"syscall"
 )
 
+func consume(addr string, group string, topic string, abort <-chan int) <-chan []byte {
+	ch := make(chan []byte, 1000)
+
+	go func() {
+
+		consumer, err := kafka.NewConsumer(&kafka.ConfigMap{
+			"bootstrap.servers":     addr,
+			"broker.address.family": "v4",
+			"group.id":              group,
+			"session.timeout.ms":    6000,
+			"auto.offset.reset":     "earliest"})
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to create consumer: %s\n", err)
+			ch <- nil
+			return
+		}
+		defer consumer.Close()
+		err = consumer.SubscribeTopics([]string{topic}, nil)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to SubscribeTopics : %s\n", topic)
+			ch <- nil
+			return
+		}
+		for {
+			select {
+			case <-abort:
+				fmt.Printf("Caught abort")
+				close(ch)
+				return
+			default:
+				ev := consumer.Poll(100)
+				if ev == nil {
+					continue
+				}
+				switch e := ev.(type) {
+				case *kafka.Message:
+					fmt.Println("Got Message")
+					ch <- e.Value
+				}
+			}
+		}
+	}()
+	return ch
+}
+
 func main() {
 
 	if len(os.Args) < 4 {
@@ -38,67 +83,19 @@ func main() {
 
 	broker := os.Args[1]
 	group := os.Args[2]
-	topics := os.Args[3:]
+	topics := os.Args[3]
 	sigchan := make(chan os.Signal, 1)
 	signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
-
-	c, err := kafka.NewConsumer(&kafka.ConfigMap{
-		"bootstrap.servers": broker,
-		// Avoid connecting to IPv6 brokers:
-		// This is needed for the ErrAllBrokersDown show-case below
-		// when using localhost brokers on OSX, since the OSX resolver
-		// will return the IPv6 addresses first.
-		// You typically don't need to specify this configuration property.
-		"broker.address.family": "v4",
-		"group.id":              group,
-		"session.timeout.ms":    6000,
-		"auto.offset.reset":     "earliest"})
-
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to create consumer: %s\n", err)
-		os.Exit(1)
-	}
-
-	fmt.Printf("Created Consumer %v\n", c)
-
-	err = c.SubscribeTopics(topics, nil)
-
-	run := true
-
-	for run == true {
+	abort := make(chan int)
+	ch := consume(broker, group, topics, abort)
+	for val := range ch {
 		select {
 		case sig := <-sigchan:
 			fmt.Printf("Caught signal %v: terminating\n", sig)
-			run = false
+			break
 		default:
-			ev := c.Poll(100)
-			if ev == nil {
-				continue
-			}
-
-			switch e := ev.(type) {
-			case *kafka.Message:
-				fmt.Printf("%% Message on %s:\n%s\n",
-					e.TopicPartition, string(e.Value))
-				if e.Headers != nil {
-					fmt.Printf("%% Headers: %v\n", e.Headers)
-				}
-			case kafka.Error:
-				// Errors should generally be considered
-				// informational, the client will try to
-				// automatically recover.
-				// But in this example we choose to terminate
-				// the application if all brokers are down.
-				fmt.Fprintf(os.Stderr, "%% Error: %v: %v\n", e.Code(), e)
-				if e.Code() == kafka.ErrAllBrokersDown {
-					run = false
-				}
-			default:
-				fmt.Printf("Ignored %v\n", e)
-			}
+			fmt.Printf("Get Value from channel %v", string(val))
 		}
 	}
-
-	fmt.Printf("Closing consumer\n")
-	c.Close()
+	close(abort)
 }

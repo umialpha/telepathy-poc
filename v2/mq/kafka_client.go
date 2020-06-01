@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/gob"
 	"fmt"
+	"math/rand"
 	"os"
 	"time"
 
@@ -85,7 +86,7 @@ func (c *kafkaClient) Consume(queueName string, abort <-chan int, opt ...interfa
 		consumer, err := kafka.NewConsumer(&kafka.ConfigMap{
 			"bootstrap.servers":     c.brokerAddr,
 			"broker.address.family": "v4",
-			"group.id":              queueName,
+			"group.id":              fmt.Sprintf("%d", rand.Int()),
 			"session.timeout.ms":    6000,
 			"auto.offset.reset":     "earliest"})
 		if err != nil {
@@ -98,16 +99,18 @@ func (c *kafkaClient) Consume(queueName string, abort <-chan int, opt ...interfa
 		err = consumer.SubscribeTopics([]string{queueName}, nil)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Failed to SubscribeTopics : %s\n", queueName)
-			ch <- nil
 			errCh <- err
+			close(ch)
 			return
 		}
 		for {
 			select {
 			case <-abort:
 				fmt.Printf("Caught abort")
+				close(errCh)
 				close(ch)
 				return
+
 			default:
 				ev := consumer.Poll(100)
 				if ev == nil {
@@ -115,7 +118,9 @@ func (c *kafkaClient) Consume(queueName string, abort <-chan int, opt ...interfa
 				}
 				switch e := ev.(type) {
 				case *kafka.Message:
-					fmt.Println("Got Message")
+					fmt.Printf("Message on %s:\n%s\n",
+						e.TopicPartition, string(e.Value))
+					errCh <- nil
 					ch <- e.Value
 				}
 			}

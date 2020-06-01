@@ -30,6 +30,7 @@ func (s *BackendServer) run() {
 	}()
 	ch, errCh := s.kfclient.Consume(JOB_QUEUE, abort)
 
+	fmt.Println("Start to Receive Job")
 	for val := range ch {
 		err := <-errCh
 		if err != nil {
@@ -37,6 +38,7 @@ func (s *BackendServer) run() {
 			return
 		}
 		jobID := string(val)
+		fmt.Println("Got Job", jobID)
 		go s.startJob(jobID)
 	}
 }
