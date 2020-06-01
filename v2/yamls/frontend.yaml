@@ -8,7 +8,6 @@ metadata:
 spec:
   ports:
   - port: 4001
-    protocol: TCP
     targetPort: 4001
   selector:
     app: telepathy-fe

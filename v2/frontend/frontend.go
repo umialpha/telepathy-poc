@@ -97,14 +97,14 @@ func newServer() pb.FrontendSvcServer {
 	return s
 }
 
-var MQ_ADDR = flag.String("MQ_ADDR", "localhost:9092", "MQ ADDR")
+var MQ_ADDR = flag.String("MQ_ADDR", "0.0.0.0:9092", "MQ ADDR")
 var PORT = flag.String("PORT", "4001", "server port")
 
 func main() {
 	flag.Parse()
 	grpcServer := grpc.NewServer()
 	pb.RegisterFrontendSvcServer(grpcServer, newServer())
-	lis, err := net.Listen("tcp", fmt.Sprintf("localhost:%s", *PORT))
+	lis, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%s", *PORT))
 	if err != nil {
 		fmt.Println("Failed to Start Server %v", err)
 		return
