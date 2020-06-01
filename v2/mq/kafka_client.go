@@ -83,7 +83,7 @@ func (c *kafkaClient) Produce(queueName string, key interface{}, value interface
 	return nil
 }
 
-func (c *kafkaClient) Consume(queueName string, abort <-chan int, opt ...interface{}) (<-chan interface{}, <-error) {
+func (c *kafkaClient) Consume(queueName string, abort <-chan int, opt ...interface{}) (<-chan interface{}, <-chan error) {
 	ch := make(chan interface{}, 1000)
 	errCh := make(chan error)
 	go func() {
@@ -95,20 +95,23 @@ func (c *kafkaClient) Consume(queueName string, abort <-chan int, opt ...interfa
 			"auto.offset.reset":     "earliest"})
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Failed to create consumer: %s\n", err)
-			ch <- nil, errCh <- err
+			ch <- nil
+			errCh <- err
 			return
 		}
 		defer consumer.Close()
 		err = consumer.SubscribeTopics([]string{queueName}, nil)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Failed to SubscribeTopics : %s\n", queueName)
-			ch <- nil, errCh <- err
+			ch <- nil
+			errCh <- err
 			return
 		}
 		for {
 			select {
 			case <-abort:
 				fmt.Printf("Caught abort")
+				close(ch)
 				return
 			default:
 				ev := consumer.Poll(100)
@@ -117,11 +120,7 @@ func (c *kafkaClient) Consume(queueName string, abort <-chan int, opt ...interfa
 				}
 				switch e := ev.(type) {
 				case *kafka.Message:
-					fmt.Printf("%% Message on %s: %s",
-						e.TopicPartition, string(e.Value))
-					if e.Headers != nil {
-						fmt.Printf("%% Headers: %v\n", e.Headers)
-					}
+					fmt.Println("Got Message")
 					ch <- e.Value
 				}
 			}

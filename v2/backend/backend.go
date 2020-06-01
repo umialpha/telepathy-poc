@@ -32,6 +32,7 @@ func (s *BackendServer) run() {
 	for val := range ch {
 		err := <-errCh
 		if err != nil {
+			fmt.Println("Consume Job Queue Error", err)
 			return
 		}
 		jobID := val.(string)
