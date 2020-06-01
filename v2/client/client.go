@@ -19,16 +19,26 @@ type TClient struct {
 	client     pb.FrontendSvcClient
 }
 
-func (c *TClient) CreateJob(jobID string, reqNum int32) {
+func (c *TClient) CreateJob(jobID string, reqNum int32) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
-	c.client.CreateJob(ctx, &pb.JobRequest{JobID: jobID, ReqNum: reqNum})
+	_, err := c.client.CreateJob(ctx, &pb.JobRequest{JobID: jobID, ReqNum: reqNum})
+	if err != nil {
+		fmt.Println("Create Job Err", err)
+		return err
+	}
+	return nil
 }
 
-func (c *TClient) SendTask(jobID string, taskID int) {
+func (c *TClient) SendTask(jobID string, taskID int) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
-	c.client.SendTask(ctx, &pb.TaskRequest{JobID: jobID, TaskID: int32(taskID)})
+	_, err := c.client.SendTask(ctx, &pb.TaskRequest{JobID: jobID, TaskID: int32(taskID)})
+	if err != nil {
+		fmt.Println("Send Task Err", err)
+		return err
+	}
+	return nil
 }
 
 func (c *TClient) GetResponse(jobID string, reqNum int32) chan int {

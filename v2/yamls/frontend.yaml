@@ -6,11 +6,10 @@ metadata:
   labels:
     app: telepathy-fe
 spec:
-  type: LoadBalancer
   ports:
-  - port: 4520
+  - port: 4001
     protocol: TCP
-    targetPort: 4520
+    targetPort: 4001
   selector:
     app: telepathy-fe
 ---
@@ -34,10 +33,7 @@ spec:
     spec:
       containers:
       - name: telepathy-poc
-        image: kuberegistry0.azurecr.io/telepathy.poc:v4
+        image: kuberegistry0.azurecr.io/telepathy.poc:v5
         command: ["/go/bin/frontend"]
-        env:
-          - name: MQ_ADDR
-            value: "bootstrap.kafka.svc.cluster.local:9092"
-          - name: PORT
-            value: "4520"
+        args: ["-MQ_ADDR", "bootstrap.kafka.svc.cluster.local:9092", "-PORT": "4001"]
+        

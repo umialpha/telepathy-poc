@@ -7,9 +7,9 @@ metadata:
     app: telepathy-wk
 spec:
   ports:
-  - port: 4527
+  - port: 4002
     protocol: TCP
-    targetPort: 4527
+    targetPort: 4002
   clusterIP: None
   selector:
     app: telepathy-wk
@@ -37,11 +37,8 @@ spec:
       - name: telepathy-poc
         image: kuberegistry0.azurecr.io/telepathy.poc:v1
         command: ["/go/bin/worker"]
-        env:
-          - name: MQ_ADDR
-            value: "bootstrap.kafka.svc.cluster.local:9092"
-          - name: PORT
-            value: "4527"
+        args: ["-MQ_ADDR", "bootstrap.kafka.svc.cluster.local:9092", "-PORT", "4002"]
+        
 
 
             
