@@ -62,21 +62,19 @@ func (s *frontendServer) GetResponse(req *pb.JobRequest, stream pb.FrontendSvc_G
 		abort <- 1
 	}()
 	ch, errCh := s.kfclient.Consume(endQueueName(jobID), abort)
-
 	for i := int32(0); i < reqNum; i++ {
-		err := <-errCh
-		if err != nil {
+		select {
+		case err := <-errCh:
 			fmt.Println("Consume Backend Response Err: %v", err)
 			return err
-		}
-		val := <-ch
-
-		v, _ := strconv.Atoi(string(val))
-		fmt.Println("Got Value ", v)
-		resp := &pb.TaskResponse{JobID: jobID, TaskID: int32(v)}
-		if err := stream.Send(resp); err != nil {
-			fmt.Println("stream Send Err:%v", err)
-			return err
+		case val := <-ch:
+			v, _ := strconv.Atoi(string(val))
+			fmt.Println("Got Value ", v)
+			resp := &pb.TaskResponse{JobID: jobID, TaskID: int32(v)}
+			if err := stream.Send(resp); err != nil {
+				fmt.Println("stream Send Err:%v", err)
+				return err
+			}
 		}
 	}
 
