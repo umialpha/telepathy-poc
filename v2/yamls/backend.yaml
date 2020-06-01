@@ -17,6 +17,6 @@ spec:
     spec:
       containers:
       - name: telepathy-poc
-        image: kuberegistry0.azurecr.io/telepathy.poc:v5
+        image: kuberegistry0.azurecr.io/telepathy.poc:v6
         command: ["/go/bin/backend"]
         args: ["-MQ_ADDR", "bootstrap.kafka.svc.cluster.local:9092", "-WORKER_LIST", "telepathy-wk-stateful-0.telepathy-wk-svc:4002 telepathy-wk-stateful-1.telepathy-wk-svc:4002 telepathy-wk-stateful-2.telepathy-wk-svc:4002 telepathy-wk-stateful-3.telepathy-wk-svc:4002 telepathy-wk-stateful-4.telepathy-wk-svc:4002" ]

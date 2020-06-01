@@ -20,9 +20,7 @@ type TClient struct {
 }
 
 func (c *TClient) CreateJob(jobID string, reqNum int32) error {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
-	_, err := c.client.CreateJob(ctx, &pb.JobRequest{JobID: jobID, ReqNum: reqNum})
+	_, err := c.client.CreateJob(context.Background(), &pb.JobRequest{JobID: jobID, ReqNum: reqNum})
 	if err != nil {
 		fmt.Println("Create Job Err", err)
 		return err
@@ -31,9 +29,7 @@ func (c *TClient) CreateJob(jobID string, reqNum int32) error {
 }
 
 func (c *TClient) SendTask(jobID string, taskID int) error {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
-	_, err := c.client.SendTask(ctx, &pb.TaskRequest{JobID: jobID, TaskID: int32(taskID)})
+	_, err := c.client.SendTask(context.Background(), &pb.TaskRequest{JobID: jobID, TaskID: int32(taskID)})
 	if err != nil {
 		fmt.Println("Send Task Err", err)
 		return err
@@ -98,6 +94,7 @@ func main() {
 	addr := *FRONT_ADDR
 	request := *REQ_NUM
 	jobID := *JOB_ID
+	fmt.Println("Flags:", addr, request, jobID)
 	client := NewTClient(addr)
 	client.CreateJob(jobID, int32(request))
 	startTimes := map[int]time.Time{}
