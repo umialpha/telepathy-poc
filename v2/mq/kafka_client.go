@@ -21,6 +21,13 @@ func GetBytes(key interface{}) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
+func GetInterface(bytes []byte) (interface{}, error) {
+	var buff bytes.buffer
+	buff.Write(bytes)
+	dec := gob.NewDecoder(&buff)
+
+}
+
 type kafkaClient struct {
 	IQueueClient
 	producer   *kafka.Producer
@@ -60,16 +67,14 @@ func (c *kafkaClient) CreateQueue(name string, opt ...interface{}) error {
 	return nil
 }
 
-func (c *kafkaClient) Produce(queueName string, key interface{}, value interface{}, opt ...interface{}) error {
+func (c *kafkaClient) Produce(queueName string, value []byte, opt ...interface{}) error {
 	deliveryChan := make(chan kafka.Event)
-	bvalue, err := GetBytes(value)
-	if err != nil {
 		fmt.Println("Cannot convert value to []byte ", err)
 		return err
 	}
 	c.producer.Produce(&kafka.Message{
 		TopicPartition: kafka.TopicPartition{Topic: &queueName, Partition: kafka.PartitionAny},
-		Value:          bvalue,
+		Value:          value,
 	}, deliveryChan)
 	e := <-deliveryChan
 	m := e.(*kafka.Message)
@@ -83,8 +88,8 @@ func (c *kafkaClient) Produce(queueName string, key interface{}, value interface
 	return nil
 }
 
-func (c *kafkaClient) Consume(queueName string, abort <-chan int, opt ...interface{}) (<-chan interface{}, <-chan error) {
-	ch := make(chan interface{}, 1000)
+func (c *kafkaClient) Consume(queueName string, abort <-chan int, opt ...interface{}) (<-chan []byte, <-chan error) {
+	ch := make(chan []byte, 1000)
 	errCh := make(chan error)
 	go func() {
 		consumer, err := kafka.NewConsumer(&kafka.ConfigMap{

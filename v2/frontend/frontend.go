@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"net"
+	"strconv"
 
 	"google.golang.org/grpc"
 	"telepathy.poc/mq"
@@ -40,13 +41,13 @@ func (s *frontendServer) CreateJob(ctx context.Context, request *pb.JobRequest) 
 		fmt.Println("CreateQueue Error %v", err)
 		return nil, err
 	}
-	go s.kfclient.Produce(JOB_QUEUE, nil, &request.JobID)
+	go s.kfclient.Produce(JOB_QUEUE, []byte(request.JobID))
 	return &pb.JobResponse{JobID: request.JobID}, nil
 }
 
 func (s *frontendServer) SendTask(ctx context.Context, request *pb.TaskRequest) (*pb.TaskResponse, error) {
 	fmt.Println("SendTask JobID TaskID: ", request.JobID, request.TaskID)
-	go s.kfclient.Produce(request.JobID, nil, &request.TaskID)
+	go s.kfclient.Produce(request.JobID, []byte(fmt.Sprintf("%d", request.TaskID)))
 
 	return &pb.TaskResponse{JobID: request.JobID, TaskID: request.TaskID}, nil
 
@@ -69,7 +70,8 @@ func (s *frontendServer) GetResponse(req *pb.JobRequest, stream pb.FrontendSvc_G
 			return err
 		}
 		val := <-ch
-		v := val.(int32)
+
+		v := strconv.Atoi(string(val))
 		fmt.Println("Got Value ", v)
 		resp := &pb.TaskResponse{JobID: jobID, TaskID: v}
 		if err := stream.Send(resp); err != nil {

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
+	"strconv"
 	"strings"
 
 	"google.golang.org/grpc"
@@ -35,7 +36,7 @@ func (s *BackendServer) run() {
 			fmt.Println("Consume Job Queue Error", err)
 			return
 		}
-		jobID := val.(string)
+		jobID := string(val)
 		go s.startJob(jobID)
 	}
 }
@@ -54,7 +55,7 @@ func (s *BackendServer) startJob(jobID string) {
 			log.Fatalf("StartJob err %v.\n", err)
 			return
 		}
-		taskID := val.(int32)
+		taskID := strconv.Atoi(string(val))
 		fmt.Println("Get Task %d", taskID)
 		go s.dispatchTask(jobID, taskID)
 	}
