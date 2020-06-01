@@ -2,36 +2,39 @@
 apiVersion: v1
 kind: Service
 metadata:
-    name: telepathy-cl-fe-svc
-    namespace: telepathy
-    labels:
+  name: telepathy-cl-fe-svc
+  namespace: telepathy
+  labels:
     app: elepathy-cl-fe
 spec:
-    ports:
-    - port: 6001
+  ports:
+  - port: 6001
     targetPort: 6001
-    selector:
+  selector:
     app: telepathy-cl-fe
+
+
+        
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-    name: telepathy-fe-deployment
-    namespace: telepathy
-    labels:
+  name: telepathy-fe-deployment
+  namespace: telepathy
+  labels:
     app: telepathy-cl-fe
 spec:
-    replicas: 1
-    selector:
+  replicas: 1
+  selector:
     matchLabels:
-        app: telepathy-cl-fe
-    template:
+      app: telepathy-cl-fe
+  template:
     metadata:
-        labels:
+      labels:
         app: telepathy-cl-fe
     spec:
-        containers:
-        - name: telepathy-poc
+      containers:
+      - name: telepathy-poc
         image: kuberegistry0.azurecr.io/telepathy.poc.client-fe:v0
         command: ["/go/bin/frontend"]
         args: ["-MQ_ADDR", "bootstrap.kafka.svc.cluster.local:9092", "-PORT", "6001", '-c', "2"]
@@ -42,15 +45,15 @@ spec:
 apiVersion: v1
 kind: Pod
 metadata:
-    name: telepathy-client
-    namespace: telepathy
-    labels:
+  name: telepathy-client
+  namespace: telepathy
+  labels:
     app: telepathy-client
 spec:
-    containers:
-    - name: telepathy-poc-client
-        image: kuberegistry0.azurecr.io/telepathy.poc.client-fe:v0
-        command: ["/go/bin/test/client_frontend"]
-        args: ["-FRONT_ADDR", "telepathy-cl-fe-svc.telepathy.svc.cluster.local:6001", "-REQ_NUM", "100000", "-JOB_ID", "k8s-job-1"]
+  containers:
+  - name: telepathy-poc-client
+    image: kuberegistry0.azurecr.io/telepathy.poc.client-fe:v0
+    command: ["/go/bin/test/client_frontend"]
+    args: ["-FRONT_ADDR", "telepathy-cl-fe-svc.telepathy.svc.cluster.local:6001", "-REQ_NUM", "100000", "-JOB_ID", "k8s-job-1"]
 
       
