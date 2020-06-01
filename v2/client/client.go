@@ -43,6 +43,7 @@ func (c *TClient) SendTask(jobID string, taskID int) error {
 
 func (c *TClient) GetResponse(jobID string, reqNum int32) chan int {
 	ch := make(chan int, 10)
+
 	stream, err := c.client.GetResponse(context.Background(), &pb.JobRequest{JobID: jobID, ReqNum: reqNum})
 	if err != nil {
 		log.Fatalf("GetResponse error %v.\n", err)
