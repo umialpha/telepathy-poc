@@ -36,7 +36,7 @@ spec:
     spec:
       containers:
       - name: telepathy-poc
-        image: kuberegistry0.azurecr.io/telepathy.poc.client-fe:v2
+        image: kuberegistry0.azurecr.io/telepathy.poc.client-fe:v8
         command: ["/go/bin/client_frontend"]
         args: ["-MQ_ADDR", "bootstrap.kafka.svc.cluster.local:9092", "-PORT", "6001", '-c', "2"]
         ports:

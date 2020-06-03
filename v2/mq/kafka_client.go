@@ -38,13 +38,17 @@ func (c *kafkaClient) CreateQueues(names []string, opt ...interface{}) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	var topicSpecs []kafka.TopicSpecification
+	for _, name := range names {
+		topicSpecs = append(topicSpecs, kafka.TopicSpecification{
+			Topic:             name,
+			NumPartitions:     2,
+			ReplicationFactor: 2,
+		})
+	}
 	results, err := a.CreateTopics(
 		ctx,
-		[]kafka.TopicSpecification{{
-			Topic:             names,
-			NumPartitions:     2,
-			ReplicationFactor: 2}},
-
+		topicSpecs,
 		kafka.SetAdminOperationTimeout(60*time.Second))
 	if err != nil {
 		fmt.Printf("Admin Client request error: %v\n", err)
