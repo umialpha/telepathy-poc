@@ -8,6 +8,7 @@ import (
 	"math/rand"
 	"strconv"
 	"strings"
+	"time"
 
 	"google.golang.org/grpc"
 	"telepathy.poc/mq"
@@ -72,7 +73,16 @@ func (s *BackendServer) startJob(jobID string) {
 
 func (s *BackendServer) dispatchTask(jobID string, taskID int32) {
 	idx := rand.Intn(len(s.workers))
-	go s.workers[idx].SendTask(context.Background(), &pb.TaskRequest{JobID: jobID, TaskID: taskID})
+	fmt.Printlf("dispatchTask %v:%v to client %v %v\n", jobID, taskID, idx, s.workers[idx])
+	go func(i int) {
+		ctx := context.WithTimeout(context.BackGround(), 10*time.Second)
+		defer ctx.cancel()
+		_, err := s.workers[i].SendTask(context.Background(), &pb.TaskRequest{JobID: jobID, TaskID: taskID})
+		if err != nil {
+			fmt.Println("dispatchTask %v:%v to client %v %v error: %v\n", jobID, taskID, i, s.workers[i], error)
+		}
+	}(idx)
+
 }
 
 func NewBackendServer() *BackendServer {
