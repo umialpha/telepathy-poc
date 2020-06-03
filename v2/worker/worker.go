@@ -48,9 +48,10 @@ func newServer() *WorkerServer {
 
 func main() {
 	flag.Parse()
+	fmt.Println("flags: PORT", *PORT)
 	grpcServer := grpc.NewServer()
 	pb.RegisterWorkerSvcServer(grpcServer, newServer())
-	lis, err := net.Listen("tcp", fmt.Sprintf("localhost:%s", *PORT))
+	lis, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%s", *PORT))
 	if err != nil {
 		fmt.Println("Failed to Start Server %v", err)
 		return
