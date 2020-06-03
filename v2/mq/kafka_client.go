@@ -61,6 +61,27 @@ func (c *kafkaClient) CreateQueues(names []string, opt ...interface{}) error {
 	return nil
 }
 
+func (c *kafkaClient) DeleteQueues(names []string, opt ...interface{}) error {
+	a, err := kafka.NewAdminClientFromProducer(c.producer)
+	if err != nil {
+		fmt.Printf("Failed to create new admin client from producer: %s", err)
+		return err
+	}
+	results, err := a.DeleteTopics(context.Background(), names, kafka.SetAdminOperationTimeout(time.Second*60))
+	if err != nil {
+		fmt.Printf("Failed to delete topics: %v\n", err)
+		return err
+	}
+
+	// Print results
+	for _, result := range results {
+		fmt.Printf("%s\n", result)
+	}
+
+	a.Close()
+	return nil
+}
+
 func (c *kafkaClient) Produce(queueName string, value []byte, opt ...interface{}) error {
 	deliveryChan := make(chan kafka.Event)
 	c.producer.Produce(&kafka.Message{

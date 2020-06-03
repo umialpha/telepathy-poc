@@ -67,7 +67,11 @@ func (c *TClient) GetResponse(jobID string, reqNum int32) chan int {
 }
 
 func (c *TClient) CloseJob(jobID string) {
-
+	_, err := c.client.CloseJob(context.Background(), &pb.JobRequest{JobID: jobID})
+	if err != nil {
+		fmt.Println("Close Job Error:", err)
+	}
+	return
 }
 
 func NewTClient(addr string) *TClient {
@@ -97,6 +101,7 @@ func main() {
 	fmt.Println("Flags:", addr, request, jobID)
 	client := NewTClient(addr)
 	client.CreateJob(jobID, int32(request))
+	defer client.CloseJob(jobID)
 	startTimes := map[int]time.Time{}
 	var costs []time.Duration
 	var cpus []float64

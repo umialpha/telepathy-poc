@@ -71,8 +71,10 @@ func (s *frontendServer) GetResponse(req *pb.JobRequest, stream pb.FrontendSvc_G
 	return nil
 }
 
-func (s *frontendServer) CloseJob(context.Context, *pb.JobRequest) (*pb.JobResponse, error) {
-	return nil, nil
+func (s *frontendServer) CloseJob(ctx context.Context, req *pb.JobRequest) (*pb.JobResponse, error) {
+	fmt.Println("CloseJob", req.JobID)
+	err := s.kfclient.DeleteQueues([]string{req.JobID, endQueueName(req.JobID)})
+	return nil, err
 }
 
 func newServer() pb.FrontendSvcServer {
