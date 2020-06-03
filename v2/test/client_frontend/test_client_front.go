@@ -7,11 +7,9 @@ import (
 	"io"
 	"log"
 	"net"
-	"sort"
 	"sync"
 	"time"
 
-	"github.com/shirou/gopsutil/cpu"
 	"google.golang.org/grpc"
 	"telepathy.poc/mq"
 	pb "telepathy.poc/protos"
@@ -104,42 +102,23 @@ func Client() {
 	fmt.Println("Flags:", addr, request, jobID, *serverNum)
 	var clients []*TClient
 	for i := 0; i < *serverNum; i++ {
-		clients = append(clients, NewTClient(fmt.Sprintf("%s-%d:%s", addr, i, *PORT)))
+		caddr := fmt.Sprintf(addr, i)
+		fmt.Println("Server Addr", caddr)
+		clients = append(clients, NewTClient(caddr))
 	}
-	var costs []time.Duration
-	var cpus []float64
-	var sm sync.Map
 	var wt sync.WaitGroup
 	wt.Add(request)
 	for t := 0; t < request; t++ {
 		go func(i int) {
 			defer wt.Done()
-			now := time.Now()
-			client[t%*serverNum].SendTask(jobID, t)
-			sm.Store(i, time.Since(now))
+			clients[t%*serverNum].SendTask(jobID, t)
 		}(t)
 
-		if t%100 == 0 {
-			cpu, _ := cpu.Percent(0, false)
-			cpus = append(cpus, cpu[0])
-		}
 	}
 	wt.Wait()
 	end := time.Now()
-	for t := 0; t < request; t++ {
-		val, ok := sm.Load(t)
-		if !ok {
-			fmt.Println("task not in sync map", t)
-			continue
-		}
-		costs = append(costs, val.(time.Duration))
-	}
-	sort.Slice(costs, func(i, j int) bool { return costs[i] < costs[j] })
-	sort.Slice(cpus, func(i, j int) bool { return cpus[i] < cpus[j] })
 	fmt.Println("ALL Cost", end.Sub(startTime))
 	fmt.Println("throughput", int64(request)/(end.Sub(startTime).Milliseconds())*1000)
-	fmt.Println("delay: P50: %v, P99: %v", costs[len(costs)/2], costs[len(costs)-1])
-	fmt.Println("cpu: P50: %v, P99: %v", cpus[len(cpus)/2], cpus[len(cpus)-1])
 }
 
 type frontendServer struct {
