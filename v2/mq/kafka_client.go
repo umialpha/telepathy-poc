@@ -28,7 +28,7 @@ type kafkaClient struct {
 	brokerAddr string
 }
 
-func (c *kafkaClient) CreateQueue(name string, opt ...interface{}) error {
+func (c *kafkaClient) CreateQueues(names []string, opt ...interface{}) error {
 	a, err := kafka.NewAdminClientFromProducer(c.producer)
 	if err != nil {
 		fmt.Printf("Failed to create new admin client from producer: %s", err)
@@ -41,9 +41,9 @@ func (c *kafkaClient) CreateQueue(name string, opt ...interface{}) error {
 	results, err := a.CreateTopics(
 		ctx,
 		[]kafka.TopicSpecification{{
-			Topic:             name,
-			NumPartitions:     1,
-			ReplicationFactor: 1}},
+			Topic:             names,
+			NumPartitions:     2,
+			ReplicationFactor: 2}},
 
 		kafka.SetAdminOperationTimeout(60*time.Second))
 	if err != nil {

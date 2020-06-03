@@ -26,17 +26,7 @@ type frontendServer struct {
 func (s *frontendServer) CreateJob(ctx context.Context, request *pb.JobRequest) (*pb.JobResponse, error) {
 
 	fmt.Println("CreateJob JOB_ID: %v, REQ_NUM:%v", request.JobID, request.ReqNum)
-	errch := make(chan error)
-	go func() {
-		err := s.kfclient.CreateQueue(request.JobID)
-		errch <- err
-	}()
-	err := s.kfclient.CreateQueue(endQueueName(request.JobID))
-	if err != nil {
-		fmt.Println("CreateQueue Error %v", err)
-		return nil, err
-	}
-	err = <-errch
+	err := s.kfclient.CreateQueues([]string{JOB_QUEUE, request.JobID, endQueueName(request.JobID)})
 	if err != nil {
 		fmt.Println("CreateQueue Error %v", err)
 		return nil, err
