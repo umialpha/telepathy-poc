@@ -8,7 +8,7 @@ metadata:
 spec:
     containers:
     - name: telepathy-poc-client
-      image: kuberegistry0.azurecr.io/telepathy.poc:v8
+      image: kuberegistry0.azurecr.io/telepathy.poc:v11
       command: ["/go/bin/client"]
-      args: ["-FRONT_ADDR", "telepathy-fe.telepathy.svc.cluster.local:4001", "-REQ_NUM", "1", "-JOB_ID", "k8s-job-1-2"]
+      args: ["-FRONT_ADDR", "telepathy-fe.telepathy.svc.cluster.local:4001", "-REQ_NUM", "100000", "-JOB_ID", "k8s-job-2-1"]
        

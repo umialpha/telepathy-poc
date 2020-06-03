@@ -73,13 +73,13 @@ func (s *BackendServer) startJob(jobID string) {
 
 func (s *BackendServer) dispatchTask(jobID string, taskID int32) {
 	idx := rand.Intn(len(s.workers))
-	fmt.Printlf("dispatchTask %v:%v to client %v %v\n", jobID, taskID, idx, s.workers[idx])
+	fmt.Printf("dispatchTask %v:%v to client %v %v\n", jobID, taskID, idx, s.workers[idx])
 	go func(i int) {
-		ctx := context.WithTimeout(context.BackGround(), 10*time.Second)
-		defer ctx.cancel()
-		_, err := s.workers[i].SendTask(context.Background(), &pb.TaskRequest{JobID: jobID, TaskID: taskID})
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		_, err := s.workers[i].SendTask(ctx, &pb.TaskRequest{JobID: jobID, TaskID: taskID})
 		if err != nil {
-			fmt.Println("dispatchTask %v:%v to client %v %v error: %v\n", jobID, taskID, i, s.workers[i], error)
+			fmt.Println("dispatchTask %v:%v to client %v %v error: %v\n", jobID, taskID, i, s.workers[i], err)
 		}
 	}(idx)
 
