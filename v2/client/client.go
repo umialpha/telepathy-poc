@@ -168,6 +168,11 @@ func median(percentile float64, h *stats.Histogram) int64 {
 	panic("should have found a bound")
 }
 
+var hopts = stats.HistogramOptions{
+	NumBuckets:   2495,
+	GrowthFactor: .01,
+}
+
 func main() {
 	startTime := time.Now()
 	cpuBeg := GetCPUTime()
@@ -216,13 +221,9 @@ func main() {
 		}
 	}
 
-	fmt.Println("Client CPU utilization:", time.Duration(syscall.GetCPUTime()-cpuBeg))
+	fmt.Println("Client CPU utilization:", time.Duration(GetCPUTime()-cpuBeg))
 	fmt.Println("qps:", float64(len(resps))/float64(time.Since(startTime)))
 
-	var hopts = stats.HistogramOptions{
-		NumBuckets:   2495,
-		GrowthFactor: .01,
-	}
 	var hists []*stats.Histogram
 	for i := 0; i < 4; i++ {
 		hists = append(hists, stats.NewHistogram(hopts))
