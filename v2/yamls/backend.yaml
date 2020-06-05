@@ -19,4 +19,4 @@ spec:
       - name: telepathy-poc
         image: kuberegistry0.azurecr.io/telepathy.poc:v11
         command: ["/go/bin/backend"]
-        args: ["-MQ_ADDR", "bootstrap.kafka.svc.cluster.local:9092", "-WORKER_LIST", "telepathy-wk-0.telepathy-wk.telepathy.svc.cluster.local:4002 telepathy-wk-1.telepathy-wk.telepathy.svc.cluster.local:4002 telepathy-wk-2.telepathy-wk.telepathy.svc.cluster.local:4002 telepathy-wk-3.telepathy-wk.telepathy.svc.cluster.local:4002 telepathy-wk-4.telepathy-wk.telepathy.svc.cluster.local:4002" ]
+        args: ["-q", "bootstrap.kafka.svc.cluster.local:9092", "-w", "telepathy-wk-%d.telepathy-wk.telepathy.svc.cluster.local:4002 5" ]

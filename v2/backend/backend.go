@@ -6,18 +6,20 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
-	"strconv"
 	"strings"
 	"time"
 
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/proto"
 	"telepathy.poc/mq"
 	pb "telepathy.poc/protos"
 )
 
-var JOB_QUEUE string = "JOB_QUEUE"
-var MQ_ADDR = flag.String("MQ_ADDR", "0.0.0.0:9092", "MQ ADDR")
-var WORKER_LIST = flag.String("WORKER_LIST", "0.0.0.0:4002", "Worker list")
+var (
+	JOB_QUEUE string = "JOB_QUEUE"
+	qAddr            = flag.String("q", "0.0.0.0:9092", "MQ ADDR")
+	workerStr        = flag.String("w", "0.0.0.0:4002", "Worker list")
+)
 
 type BackendServer struct {
 	workers  []pb.WorkerSvcClient
@@ -62,22 +64,33 @@ func (s *BackendServer) startJob(jobID string) {
 			fmt.Println("Consume Task Queue Error", err)
 			continue
 		case val := <-ch:
-			taskID, _ := strconv.Atoi(string(val))
-			fmt.Println("Get Task %d", taskID)
-			go s.dispatchTask(jobID, int32(taskID))
+			taskResp := &pb.TaskResponse{}
+			if err := proto.Unmarshal(taskResp); err != nil {
+				fmt.Println("Error To Unmarshal task", err)
+				continue
+			}
+			fmt.Println("Get Task %d", taskResp.TaskID)
+			go s.dispatchTask(jobID, taskResp)
 
 		}
 	}
 
 }
 
-func (s *BackendServer) dispatchTask(jobID string, taskID int32) {
+func (s *BackendServer) dispatchTask(jobID string, taskResp *pb.TaskResponse) {
 	idx := rand.Intn(len(s.workers))
-	fmt.Printf("dispatchTask %v:%v to client %v %v\n", jobID, taskID, idx, s.workers[idx])
+	fmt.Printf("dispatchTask %v:%v to client %v %v\n", jobID, taskResp.TaskID, idx, s.workers[idx])
 	go func(i int) {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
-		_, err := s.workers[i].SendTask(ctx, &pb.TaskRequest{JobID: jobID, TaskID: taskID})
+		_, err := s.workers[i].SendTask(ctx, &pb.TaskRequest{
+			JobID:  jobID,
+			TaskID: taskResp.TaskID,
+			Timestamp: &pb.ModifiedTime{
+				Client: taskResp.Timestamp.Client,
+				Front:  taskResp.Timestamp.Front,
+				Back:   time.Now().UnixNano(),
+			}})
 		if err != nil {
 			fmt.Println("dispatchTask %v:%v to client %v %v error: %v\n", jobID, taskID, i, s.workers[i], err)
 		}

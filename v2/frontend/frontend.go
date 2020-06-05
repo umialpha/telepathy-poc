@@ -5,9 +5,10 @@ import (
 	"flag"
 	"fmt"
 	"net"
-	"strconv"
+	"time"
 
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/proto"
 	"telepathy.poc/mq"
 	pb "telepathy.poc/protos"
 )
@@ -32,14 +33,30 @@ func (s *frontendServer) CreateJob(ctx context.Context, request *pb.JobRequest) 
 		return nil, err
 	}
 	go s.kfclient.Produce(JOB_QUEUE, []byte(request.JobID))
-	return &pb.JobResponse{JobID: request.JobID}, nil
+	return &pb.JobResponse{
+		JobID: request.JobID,
+		Timestamp: &pb.Timestamp{
+			Client: request.Timestamp.Client,
+			Front:  time.Now().UnixNano(),
+		}}, nil
 }
 
 func (s *frontendServer) SendTask(ctx context.Context, request *pb.TaskRequest) (*pb.TaskResponse, error) {
 	fmt.Println("SendTask JobID TaskID: ", request.JobID, request.TaskID)
-	go s.kfclient.Produce(request.JobID, []byte(fmt.Sprintf("%d", request.TaskID)))
 
-	return &pb.TaskResponse{JobID: request.JobID, TaskID: request.TaskID}, nil
+	value := &pb.TaskResponse{
+		JobID:  request.JobID,
+		TaskID: request.TaskID,
+		Timestamp: &pb.Timestamp{
+			Client: request.Timestamp.Client,
+			Front:  time.Now().UnixNano(),
+		}}
+	bytes, err := proto.Marshal(value)
+	if err != nil {
+		return value, err
+	}
+	go s.kfclient.Produce(request.JobID, bytes)
+	return value, nil
 
 }
 
@@ -58,9 +75,12 @@ func (s *frontendServer) GetResponse(req *pb.JobRequest, stream pb.FrontendSvc_G
 			fmt.Println("Consume Backend Response Err: %v", err)
 			return err
 		case val := <-ch:
-			v, _ := strconv.Atoi(string(val))
-			fmt.Println("Got Value ", v)
-			resp := &pb.TaskResponse{JobID: jobID, TaskID: int32(v)}
+			resp := pb.TaskResponse{}
+			if err := proto.Unmarshl(val, resp); err != nil {
+				fmt.Println("GetResp Unmarshel Error", err)
+				continue
+			}
+			fmt.Println("Got Response TaskID ", resp.TaskID)
 			if err := stream.Send(resp); err != nil {
 				fmt.Println("stream Send Err:%v", err)
 				return err
@@ -89,14 +109,15 @@ func newServer() pb.FrontendSvcServer {
 	return s
 }
 
-var MQ_ADDR = flag.String("MQ_ADDR", "0.0.0.0:9092", "MQ ADDR")
-var PORT = flag.String("PORT", "4001", "server port")
+var qAddr = flag.String("q", "0.0.0.0:9092", "MQ ADDR")
+var port = flag.String("p", "4001", "server port")
 
 func main() {
 	flag.Parse()
+	fmt.Println(*qAddr, *port)
 	grpcServer := grpc.NewServer()
 	pb.RegisterFrontendSvcServer(grpcServer, newServer())
-	lis, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%s", *PORT))
+	lis, err := net.Listen("tcp", fmt.Sprintf(":%s", *port))
 	if err != nil {
 		fmt.Println("Failed to Start Server %v", err)
 		return

@@ -10,8 +10,11 @@ require (
 	github.com/segmentio/kafka-go v0.3.6 // indirect
 	github.com/shirou/gopsutil v2.20.4+incompatible
 	github.com/stretchr/testify v1.5.1 // indirect
+	golang.org/x/lint v0.0.0-20190313153728-d0100b6bd8b3 // indirect
 	golang.org/x/sys v0.0.0-20190412213103-97732733099d
+	golang.org/x/tools v0.0.0-20190524140312-2c0ae7006135 // indirect
 	google.golang.org/grpc v1.29.1
 	google.golang.org/protobuf v1.23.0
 	gopkg.in/confluentinc/confluent-kafka-go.v1 v1.4.2
+	honnef.co/go/tools v0.0.0-20190523083050-ea95bdfd59fc // indirect
 )

@@ -8,6 +8,7 @@ import (
 	"net"
 
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/proto"
 	"telepathy.poc/mq"
 	pb "telepathy.poc/protos"
 )
@@ -26,12 +27,28 @@ type WorkerServer struct {
 
 func (w *WorkerServer) SendTask(ctx context.Context, req *pb.TaskRequest) (*pb.TaskResponse, error) {
 	fmt.Println("SendTask", req.JobID, req.TaskID)
+
 	go w.doWork(req)
-	return &pb.TaskResponse{JobID: req.JobID, TaskID: req.TaskID}, nil
+	return &pb.TaskResponse{
+		JobID:  req.JobID,
+		TaskID: req.TaskID}, nil
 }
 
 func (w *WorkerServer) doWork(req *pb.TaskRequest) {
-	w.kfclient.Produce(endQueueName(req.JobID), []byte(fmt.Sprintf("%d", req.TaskID)))
+	value := &pb.TaskResponse{
+		JobID:  req.JobID,
+		TaskID: req.TaskID,
+		Timestamp: &pb.ModifiedTime{
+			Client: req.Timestamp.Client,
+			Front:  req.Timestamp.Front,
+			Back:   req.Timestamp.Back,
+			Worker: req.Timestamp.Worker,
+		}}
+	if bytes, err := proto.Marshal(value); err != nil {
+		fmt.Println("DoWork Marshal Error", err)
+		return
+	}
+	w.kfclient.Produce(endQueueName(req.JobID), bytes)
 }
 
 func newServer() *WorkerServer {

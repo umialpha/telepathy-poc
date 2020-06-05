@@ -20,8 +20,8 @@ var (
 	frontAddr = flag.String("addr", "localhost:4001", "frontend server ip:port")
 	reqNum    = flag.Int("n", 1, "requeset num")
 	//numRPC    = flag.Int("r", 1, "The number of concurrent RPCs on each connection.")
-	numConn     = flag.Int("c", 1, "The number of parallel connections.")
-	warmupDur   = flag.Int("w", 10, "Warm-up duration in seconds")
+	numConn = flag.Int("c", 1, "The number of parallel connections.")
+	//warmupDur   = flag.Int("w", 10, "Warm-up duration in seconds")
 	respTimeout = flag.Int("t", 120, "Get Response Timeout in seconds")
 )
 
@@ -177,7 +177,7 @@ func main() {
 	startTime := time.Now()
 	cpuBeg := GetCPUTime()
 	flag.Parse()
-	fmt.Println("Flags:", *frontAddr, *reqNum /*numRPC,*/, *numConn, *warmupDur)
+	fmt.Println("Flags:", *frontAddr, *reqNum /*numRPC,*/, *numConn)
 	jobID, err := NewJobID()
 	if err != nil {
 		return
