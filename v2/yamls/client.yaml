@@ -8,7 +8,14 @@ metadata:
 spec:
     containers:
     - name: telepathy-poc-client
-      image: kuberegistry0.azurecr.io/telepathy.poc:v11
+      image: kuberegistry0.azurecr.io/telepathy.poc:v2.4
       command: ["/go/bin/client"]
-      args: ["-addr", "telepathy-fe.telepathy.svc.cluster.local:4001", "-n", "100000", "-c", "5"]
-       
+      args: ["-addr", "telepathy-fe.telepathy.svc.cluster.local:4001", "-n", "10", "-c", "5"]
+      resources:
+        requests:
+          cpu: "15"       
+    tolerations:
+    - key: "CPU"
+      operator: "Equal"
+      value: "High"
+      effect: "NoSchedule"

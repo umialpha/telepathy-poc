@@ -32,12 +32,14 @@ spec:
     spec:
       containers:
       - name: telepathy-poc
-        image: kuberegistry0.azurecr.io/telepathy.poc:v11
+        image: kuberegistry0.azurecr.io/telepathy.poc:v2.2
         command: ["/go/bin/frontend"]
         args: ["-q", "bootstrap.kafka.svc.cluster.local:9092", "-p", "4001"]
         ports:
         - containerPort: 4001
-  
+        resources:
+          requests:
+            cpu: "3" 
         
 
         

@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/gob"
 	"fmt"
-	"math/rand"
 	"os"
 	"time"
 
@@ -104,14 +103,14 @@ func (c *kafkaClient) Produce(queueName string, value []byte, opt ...interface{}
 	return nil
 }
 
-func (c *kafkaClient) Consume(queueName string, abort <-chan int, opt ...interface{}) (<-chan []byte, <-chan error) {
+func (c *kafkaClient) Consume(queueName string, groupID string, abort <-chan int, opt ...interface{}) (<-chan []byte, <-chan error) {
 	ch := make(chan []byte, 1000)
 	errCh := make(chan error)
 	go func() {
 		consumer, err := kafka.NewConsumer(&kafka.ConfigMap{
 			"bootstrap.servers":     c.brokerAddr,
 			"broker.address.family": "v4",
-			"group.id":              fmt.Sprintf("%d", rand.Int()),
+			"group.id":              groupID,
 			"session.timeout.ms":    6000,
 			"auto.offset.reset":     "earliest"})
 		if err != nil {

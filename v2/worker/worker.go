@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"time"
 
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/proto"
@@ -13,8 +14,8 @@ import (
 	pb "telepathy.poc/protos"
 )
 
-var MQADDR = flag.String("MQ_ADDR", "localhost:9092", "mq addr")
-var PORT = flag.String("PORT", "4002", "server port")
+var qAddr = flag.String("q", "localhost:9092", "mq addr")
+var port = flag.String("p", "4002", "server port")
 
 func endQueueName(que string) string {
 	return que + "-END"
@@ -42,9 +43,12 @@ func (w *WorkerServer) doWork(req *pb.TaskRequest) {
 			Client: req.Timestamp.Client,
 			Front:  req.Timestamp.Front,
 			Back:   req.Timestamp.Back,
-			Worker: req.Timestamp.Worker,
+			Worker: time.Now().UnixNano(),
+			End:    time.Now().UnixNano(),
 		}}
-	if bytes, err := proto.Marshal(value); err != nil {
+	var bytes []byte
+	var err error
+	if bytes, err = proto.Marshal(value); err != nil {
 		fmt.Println("DoWork Marshal Error", err)
 		return
 	}
@@ -52,9 +56,8 @@ func (w *WorkerServer) doWork(req *pb.TaskRequest) {
 }
 
 func newServer() *WorkerServer {
-	mqAddr := *MQADDR
 	w := &WorkerServer{}
-	c, err := mq.NewKafkaClient(mqAddr)
+	c, err := mq.NewKafkaClient(*qAddr)
 	if err != nil {
 		log.Fatalf("Create Worker Kafka Client error: %v.\n", err)
 		return nil
@@ -65,10 +68,10 @@ func newServer() *WorkerServer {
 
 func main() {
 	flag.Parse()
-	fmt.Println("flags: PORT", *PORT)
+	fmt.Println("flags", *qAddr, *port)
 	grpcServer := grpc.NewServer()
 	pb.RegisterWorkerSvcServer(grpcServer, newServer())
-	lis, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%s", *PORT))
+	lis, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%s", *port))
 	if err != nil {
 		fmt.Println("Failed to Start Server %v", err)
 		return

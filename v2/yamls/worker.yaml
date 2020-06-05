@@ -24,7 +24,7 @@ metadata:
     app: telepathy-wk
 spec:
   serviceName: "telepathy-wk"
-  replicas: 5
+  replicas: 4
   selector:
     matchLabels:
       app: telepathy-wk
@@ -35,11 +35,13 @@ spec:
     spec:
       containers:
       - name: telepathy-poc
-        image: kuberegistry0.azurecr.io/telepathy.poc:v11
+        image: kuberegistry0.azurecr.io/telepathy.poc:v2.2
         command: ["/go/bin/worker"]
-        args: ["-MQ_ADDR", "bootstrap.kafka.svc.cluster.local:9092", "-PORT", "4002"]
+        args: ["-q", "bootstrap.kafka.svc.cluster.local:9092", "-p", "4002"]
         ports:
         - containerPort: 4002
-
+        resources:
+          requests:
+            cpu: "3"
 
             

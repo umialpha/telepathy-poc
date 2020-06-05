@@ -35,7 +35,7 @@ func (s *frontendServer) CreateJob(ctx context.Context, request *pb.JobRequest) 
 	go s.kfclient.Produce(JOB_QUEUE, []byte(request.JobID))
 	return &pb.JobResponse{
 		JobID: request.JobID,
-		Timestamp: &pb.Timestamp{
+		Timestamp: &pb.ModifiedTime{
 			Client: request.Timestamp.Client,
 			Front:  time.Now().UnixNano(),
 		}}, nil
@@ -47,7 +47,7 @@ func (s *frontendServer) SendTask(ctx context.Context, request *pb.TaskRequest) 
 	value := &pb.TaskResponse{
 		JobID:  request.JobID,
 		TaskID: request.TaskID,
-		Timestamp: &pb.Timestamp{
+		Timestamp: &pb.ModifiedTime{
 			Client: request.Timestamp.Client,
 			Front:  time.Now().UnixNano(),
 		}}
@@ -68,19 +68,19 @@ func (s *frontendServer) GetResponse(req *pb.JobRequest, stream pb.FrontendSvc_G
 	defer func() {
 		abort <- 1
 	}()
-	ch, errCh := s.kfclient.Consume(endQueueName(jobID), abort)
+	ch, errCh := s.kfclient.Consume(endQueueName(jobID), jobID, abort)
 	for i := int32(0); i < reqNum; i++ {
 		select {
 		case err := <-errCh:
 			fmt.Println("Consume Backend Response Err: %v", err)
 			return err
 		case val := <-ch:
-			resp := pb.TaskResponse{}
-			if err := proto.Unmarshl(val, resp); err != nil {
+			resp := &pb.TaskResponse{}
+			if err := proto.Unmarshal(val, resp); err != nil {
 				fmt.Println("GetResp Unmarshel Error", err)
 				continue
 			}
-			fmt.Println("Got Response TaskID ", resp.TaskID)
+			fmt.Println("Got Response TaskID, Resp Time ", resp.TaskID, resp.Timestamp)
 			if err := stream.Send(resp); err != nil {
 				fmt.Println("stream Send Err:%v", err)
 				return err
@@ -99,10 +99,8 @@ func (s *frontendServer) CloseJob(ctx context.Context, req *pb.JobRequest) (*pb.
 
 func newServer() pb.FrontendSvcServer {
 	s := &frontendServer{}
-	mqAddr := *MQ_ADDR
-	fmt.Println("Get MQ Addr %v", mqAddr)
 	var err error
-	s.kfclient, err = mq.NewKafkaClient(mqAddr)
+	s.kfclient, err = mq.NewKafkaClient(*qAddr)
 	if err != nil {
 		panic(err)
 	}

@@ -20,7 +20,7 @@ var (
 	frontAddr = flag.String("addr", "localhost:4001", "frontend server ip:port")
 	reqNum    = flag.Int("n", 1, "requeset num")
 	//numRPC    = flag.Int("r", 1, "The number of concurrent RPCs on each connection.")
-	numConn = flag.Int("c", 1, "The number of parallel connections.")
+	numConn = flag.Int("c", 5, "The number of parallel connections.")
 	//warmupDur   = flag.Int("w", 10, "Warm-up duration in seconds")
 	respTimeout = flag.Int("t", 120, "Get Response Timeout in seconds")
 )
@@ -135,7 +135,7 @@ func NewJobID() (string, error) {
 		fmt.Println("NewJobID err", err)
 		return "", err
 	}
-	return string(b), nil
+	return fmt.Sprintf("%x-%x-%x", b[0:4], b[4:6], b[6:8]), nil
 }
 
 func GetCPUTime() int64 {
@@ -179,18 +179,19 @@ func main() {
 	flag.Parse()
 	fmt.Println("Flags:", *frontAddr, *reqNum /*numRPC,*/, *numConn)
 	jobID, err := NewJobID()
+	fmt.Println("jobID", jobID)
 	if err != nil {
 		return
 	}
-	clients := make([]*TClient, *numConn)
+	var clients []*TClient
 	for i := 0; i < *numConn; i++ {
 		clients = append(clients, NewTClient(*frontAddr))
 	}
-	defer func() {
-		for _, c := range clients {
-			c.CloseConn()
-		}
-	}()
+	//	defer func() {
+	//		for _, c := range clients {
+	//			c.CloseConn()
+	//		}
+	//	}()
 	clients[0].CreateJob(jobID, int32(*reqNum))
 	defer clients[0].CloseJob(jobID)
 	var errorNum int32
@@ -213,6 +214,10 @@ func main() {
 	for {
 		select {
 		case resp := <-respChan:
+			if resp == nil {
+				break
+			}
+			fmt.Println("GetResponse timestamp", resp.Timestamp)
 			resp.Timestamp.End = time.Now().UnixNano()
 			resps = append(resps, resp)
 		case <-time.After(time.Second * time.Duration((*respTimeout))):

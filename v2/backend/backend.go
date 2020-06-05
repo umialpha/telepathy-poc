@@ -16,9 +16,10 @@ import (
 )
 
 var (
-	JOB_QUEUE string = "JOB_QUEUE"
-	qAddr            = flag.String("q", "0.0.0.0:9092", "MQ ADDR")
-	workerStr        = flag.String("w", "0.0.0.0:4002", "Worker list")
+	JOB_QUEUE     string = "JOB_QUEUE"
+	qAddr                = flag.String("q", "0.0.0.0:9092", "MQ ADDR")
+	workerAddrFmt        = flag.String("w", "localhost:4002", "Worker Addr Format")
+	workerNum            = flag.Int("n", 5, "worker number")
 )
 
 type BackendServer struct {
@@ -31,7 +32,7 @@ func (s *BackendServer) run() {
 	defer func() {
 		abort <- 1
 	}()
-	ch, errCh := s.kfclient.Consume(JOB_QUEUE, abort)
+	ch, errCh := s.kfclient.Consume(JOB_QUEUE, fmt.Sprintf("%s", rand.Int()), abort)
 
 	fmt.Println("Start to Receive Job")
 
@@ -56,7 +57,7 @@ func (s *BackendServer) startJob(jobID string) {
 	defer func() {
 		abort <- 1
 	}()
-	ch, errCh := s.kfclient.Consume(jobID, abort)
+	ch, errCh := s.kfclient.Consume(jobID, jobID, abort)
 
 	for {
 		select {
@@ -65,7 +66,7 @@ func (s *BackendServer) startJob(jobID string) {
 			continue
 		case val := <-ch:
 			taskResp := &pb.TaskResponse{}
-			if err := proto.Unmarshal(taskResp); err != nil {
+			if err := proto.Unmarshal(val, taskResp); err != nil {
 				fmt.Println("Error To Unmarshal task", err)
 				continue
 			}
@@ -92,7 +93,7 @@ func (s *BackendServer) dispatchTask(jobID string, taskResp *pb.TaskResponse) {
 				Back:   time.Now().UnixNano(),
 			}})
 		if err != nil {
-			fmt.Println("dispatchTask %v:%v to client %v %v error: %v\n", jobID, taskID, i, s.workers[i], err)
+			fmt.Println("dispatchTask %v:%v to client %v %v error: %v\n", jobID, taskResp.TaskID, i, s.workers[i], err)
 		}
 	}(idx)
 
@@ -100,18 +101,23 @@ func (s *BackendServer) dispatchTask(jobID string, taskResp *pb.TaskResponse) {
 
 func NewBackendServer() *BackendServer {
 
-	broker := *MQ_ADDR
 	s := &BackendServer{}
-	c, err := mq.NewKafkaClient(broker)
+	c, err := mq.NewKafkaClient(*qAddr)
 	if err != nil {
 		log.Fatalf("fail to create kafka client")
 		return nil
 	}
 	s.kfclient = c
-	workerAddrs := *WORKER_LIST
-	workerList := strings.Split(workerAddrs, " ")
-	for _, addr := range workerList {
-		fmt.Println("Worker ADDR %v", addr)
+
+	for i := 0; i < *workerNum; i++ {
+		var addr string
+		if !strings.Contains(*workerAddrFmt, "localhost") {
+			addr = fmt.Sprintf(*workerAddrFmt, i)
+
+		} else {
+			addr = *workerAddrFmt
+		}
+		fmt.Println("Worker Addr", addr)
 		conn, err := grpc.Dial(addr, grpc.WithInsecure())
 		if err != nil {
 			fmt.Println("fail to dial: %v", err)
@@ -120,12 +126,14 @@ func NewBackendServer() *BackendServer {
 		}
 		client := pb.NewWorkerSvcClient(conn)
 		s.workers = append(s.workers, client)
+
 	}
 	return s
 }
 
 func main() {
 	flag.Parse()
+	fmt.Println("flags", *qAddr, *workerAddrFmt, *workerNum)
 	s := NewBackendServer()
 	s.run()
 }
