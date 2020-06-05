@@ -15,21 +15,35 @@ service WorkerSvc {
     
 }
 
+
+message ModifiedTime {
+	int64 Client = 1;
+	int64 Front = 2;
+	int64 Back = 3;
+	int64 Worker = 4;
+	int64 End = 5;
+}
+
+
 message JobRequest {
 	string JobID = 1;
 	int32 reqNum = 2;
+	ModifiedTime Timestamp = 3;
 }
 
 message JobResponse {
 	string JobID = 1;
+	ModifiedTime Timestamp = 2;
 }
 
 message TaskRequest {
 	string JobID = 1;
 	int32 TaskID = 2;
+	ModifiedTime Timestamp = 3;
 }
 
 message TaskResponse {
 	string JobID = 1;
 	int32 TaskID = 2;
+	ModifiedTime Timestamp = 3;
 }
