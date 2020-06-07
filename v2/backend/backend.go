@@ -16,10 +16,11 @@ import (
 )
 
 var (
-	JOB_QUEUE     string = "JOB_QUEUE"
+	
 	qAddr                = flag.String("q", "0.0.0.0:9092", "MQ ADDR")
 	workerAddrFmt        = flag.String("w", "localhost:4002", "Worker Addr Format")
 	workerNum            = flag.Int("n", 5, "worker number")
+	jobQueue = flag.String("j", "JOB-QUEUE", "Job Queue")
 )
 
 type BackendServer struct {
@@ -32,7 +33,7 @@ func (s *BackendServer) run() {
 	defer func() {
 		abort <- 1
 	}()
-	ch, errCh := s.kfclient.Consume(JOB_QUEUE, fmt.Sprintf("%s", rand.Int()), abort)
+	ch, errCh := s.kfclient.Consume(*jobQueue, fmt.Sprintf("%s", rand.Int()), abort)
 
 	fmt.Println("Start to Receive Job")
 

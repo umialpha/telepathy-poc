@@ -17,7 +17,7 @@ func endQueueName(que string) string {
 	return que + "-END"
 }
 
-var JOB_QUEUE string = "JOB_QUEUE"
+
 
 type frontendServer struct {
 	pb.UnimplementedFrontendSvcServer
@@ -27,12 +27,12 @@ type frontendServer struct {
 func (s *frontendServer) CreateJob(ctx context.Context, request *pb.JobRequest) (*pb.JobResponse, error) {
 
 	fmt.Println("CreateJob JOB_ID: %v, REQ_NUM:%v", request.JobID, request.ReqNum)
-	err := s.kfclient.CreateQueues([]string{JOB_QUEUE, request.JobID, endQueueName(request.JobID)})
+	err := s.kfclient.CreateQueues([]string{*jobQueue, request.JobID, endQueueName(request.JobID)})
 	if err != nil {
 		fmt.Println("CreateQueue Error %v", err)
 		return nil, err
 	}
-	go s.kfclient.Produce(JOB_QUEUE, []byte(request.JobID))
+	s.kfclient.Produce(*jobQueue, []byte(request.JobID))
 	return &pb.JobResponse{
 		JobID: request.JobID,
 		Timestamp: &pb.ModifiedTime{
@@ -55,7 +55,7 @@ func (s *frontendServer) SendTask(ctx context.Context, request *pb.TaskRequest) 
 	if err != nil {
 		return value, err
 	}
-	go s.kfclient.Produce(request.JobID, bytes)
+	s.kfclient.Produce(request.JobID, bytes)
 	return value, nil
 
 }
@@ -109,6 +109,8 @@ func newServer() pb.FrontendSvcServer {
 
 var qAddr = flag.String("q", "0.0.0.0:9092", "MQ ADDR")
 var port = flag.String("p", "4001", "server port")
+var jobQueue = flag.String("j", "JOB-QUEUE", "Job Queue")
+
 
 func main() {
 	flag.Parse()

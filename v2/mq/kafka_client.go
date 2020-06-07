@@ -91,15 +91,15 @@ func (c *kafkaClient) Produce(queueName string, value []byte, opt ...interface{}
 		TopicPartition: kafka.TopicPartition{Topic: &queueName, Partition: kafka.PartitionAny},
 		Value:          value,
 	}, deliveryChan)
-	e := <-deliveryChan
-	m := e.(*kafka.Message)
-	if m.TopicPartition.Error != nil {
-		fmt.Printf("Delivery failed: %v\n", m.TopicPartition.Error)
-		return m.TopicPartition.Error
-	} else {
-		fmt.Printf("Delivered message to topic %s\n",
-			*m.TopicPartition.Topic)
-	}
+	// e := <-deliveryChan
+	// m := e.(*kafka.Message)
+	// if m.TopicPartition.Error != nil {
+	// 	fmt.Printf("Delivery failed: %v\n", m.TopicPartition.Error)
+	// 	return m.TopicPartition.Error
+	// } else {
+	// 	fmt.Printf("Delivered message to topic %s\n",
+	// 		*m.TopicPartition.Topic)
+	// }
 	return nil
 }
 
