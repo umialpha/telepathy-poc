@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math"
 	"math/rand"
 	"sync/atomic"
 	"time"
@@ -53,12 +54,12 @@ func (c *TClient) SendTask(jobID string, taskID int) (*pb.TaskResponse, error) {
 	req := &pb.TaskRequest{
 		JobID:     jobID,
 		TaskID:    int32(taskID),
-		Timestamp: &pb.ModifiedTime{Client: time.Now().UnixNano() / 1000},
+		Timestamp: &pb.ModifiedTime{Client: time.Now().UnixNano()},
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	resp, err := c.client.SendTask(ctx, req)
+	//ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	//defer cancel()
+	resp, err := c.client.SendTask(context.Background(), req)
 	if err != nil {
 		fmt.Println("Send Task Err", err)
 		return nil, err
@@ -69,12 +70,12 @@ func (c *TClient) SendTask(jobID string, taskID int) (*pb.TaskResponse, error) {
 func (c *TClient) GetResponse(jobID string, reqNum int32) chan *pb.TaskResponse {
 	ch := make(chan *pb.TaskResponse, 1000)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	stream, err := c.client.GetResponse(ctx, &pb.JobRequest{JobID: jobID, ReqNum: reqNum})
+	//ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	stream, err := c.client.GetResponse(context.Background(), &pb.JobRequest{JobID: jobID, ReqNum: reqNum})
 	if err != nil {
 		log.Fatalf("GetResponse error %v.\n", err)
 		close(ch)
-		cancel()
+		//cancel()
 		return ch
 	}
 	go func() {
@@ -93,7 +94,7 @@ func (c *TClient) GetResponse(jobID string, reqNum int32) chan *pb.TaskResponse 
 			ch <- resp
 
 		}
-		cancel()
+		//cancel()
 	}()
 	return ch
 }
@@ -174,7 +175,7 @@ var hopts = stats.HistogramOptions{
 }
 
 func main() {
-	startTime := time.Now()
+	//startTime := time.Now()
 	cpuBeg := GetCPUTime()
 	flag.Parse()
 	fmt.Println("Flags:", *frontAddr, *reqNum /*numRPC,*/, *numConn)
@@ -207,37 +208,49 @@ func main() {
 		}(t)
 	}
 	//wg.Wait()
-	fmt.Println("SendTask Error Num", errorNum)
+	//fmt.Println("SendTask Error Num", errorNum)
 
 	respChan := clients[0].GetResponse(jobID, int32(*reqNum) /*-errorNum*/)
 	var resps []*pb.TaskResponse
-	for {
+	stop := false
+	minStart := float64(time.Now().UnixNano())
+	maxEnd := float64(-1)
+	for stop == false {
 		select {
-		case resp := <-respChan:
-			if resp == nil {
+		case resp, ok := <-respChan:
+			if !ok {
+				stop = true
 				break
 			}
-			fmt.Println("GetResponse timestamp", resp.Timestamp)
+			//fmt.Println("GetResponse timestamp", resp.Timestamp)
 			resp.Timestamp.End = time.Now().UnixNano()
+			minStart = math.Min(float64(resp.Timestamp.Client), minStart)
+			maxEnd = math.Max(float64(resp.Timestamp.Worker), maxEnd)
+
 			resps = append(resps, resp)
 		case <-time.After(time.Second * time.Duration((*respTimeout))):
 			fmt.Printf("Get Response Timeout, expected: %v, actual: %v\n", int32(*reqNum), len(resps))
+			stop = true
 			break
+
 		}
 	}
-
-	fmt.Println("Client CPU utilization:", time.Duration(GetCPUTime()-cpuBeg))
-	fmt.Println("qps:", float64(len(resps))/float64(time.Since(startTime)))
+	//elapsed := time.Since(startTime)
+	elapsed := time.Duration(maxEnd - minStart)
+	fmt.Printf("Job Count %v, Duration Sec %v \n", len(resps), elapsed.Seconds())
+	fmt.Println("Client CPU utilization Sec:", time.Duration(GetCPUTime()-cpuBeg).Seconds())
+	fmt.Println("qps:", float64(len(resps))/float64(elapsed.Seconds()))
 
 	var hists []*stats.Histogram
-	for i := 0; i < 4; i++ {
+	for i := 0; i < 5; i++ {
 		hists = append(hists, stats.NewHistogram(hopts))
 	}
 	for _, resp := range resps {
 		hists[0].Add(resp.Timestamp.Front - resp.Timestamp.Client)
 		hists[1].Add(resp.Timestamp.Back - resp.Timestamp.Front)
 		hists[2].Add(resp.Timestamp.Worker - resp.Timestamp.Back)
-		hists[2].Add(resp.Timestamp.End - resp.Timestamp.Worker)
+		hists[3].Add(resp.Timestamp.End - resp.Timestamp.Worker)
+		hists[4].Add(resp.Timestamp.End - resp.Timestamp.Client)
 	}
 
 	fmt.Println("Parse Client => Frontend Latency")
@@ -251,5 +264,6 @@ func main() {
 
 	fmt.Println("Parse Worker => Client Latency")
 	parseHist(hists[3])
-
+	fmt.Println("Parse End => End Latency")
+	parseHist(hists[4])
 }

@@ -1,15 +1,19 @@
 package main
 
 import (
+	"context"
+	crand "crypto/rand"
 	"flag"
 	"fmt"
+	"io"
+	"log"
+	"math/rand"
 	"os"
 	"time"
-	"math/rand"
-	"log"
 
-	"google.golang.org/grpc/benchmark/stats"
 	"github.com/confluentinc/confluent-kafka-go/kafka"
+	"golang.org/x/sys/unix"
+	"google.golang.org/grpc/benchmark/stats"
 )
 
 func GetCPUTime() int64 {
@@ -47,9 +51,6 @@ var hopts = stats.HistogramOptions{
 	GrowthFactor: .01,
 }
 
-
-
-
 func newUUID() (string, error) {
 	uuid := make([]byte, 16)
 	n, err := io.ReadFull(crand.Reader, uuid)
@@ -62,19 +63,59 @@ func newUUID() (string, error) {
 }
 
 var (
-	duration = flag.Int("d", 60, "duration in seconds")
-	addr = flag.String("b", "bootstrap.kafka.svc.cluster.local:9092"  "broker address")
-	topic = flag.String("t", "bench-test", "topic")
-	msgSize = flag.Int("m", 1, "message size in bype")
+	addr        = flag.String("b", "bootstrap.kafka.svc.cluster.local:9092", "broker address")
+	topic       = flag.String("t", "bench-test", "topic")
+	msgSize     = flag.Int("m", 1, "message size in bype")
 	numMessages = flag.Int("n", 10000, "message count")
-
+	mode        = flag.String("mode", "p", "test mode, c / p")
 )
 
+func createTopic() {
+	a, err := kafka.NewAdminClient(&kafka.ConfigMap{"bootstrap.servers": *addr})
+	if err != nil {
+		fmt.Printf("Failed to create Admin client: %s\n", err)
+		os.Exit(1)
+	}
 
-func produce(){
-	value := make([]byte, &msgSize)
+	// Contexts are used to abort or limit the amount of time
+	// the Admin call blocks waiting for a result.
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// Create topics on cluster.
+	// Set Admin options to wait for the operation to finish (or at most 60s)
+	maxDur, err := time.ParseDuration("60s")
+	if err != nil {
+		panic("ParseDuration(60s)")
+	}
+	results, err := a.CreateTopics(
+		ctx,
+		// Multiple topics can be created simultaneously
+		// by providing more TopicSpecification structs here.
+		[]kafka.TopicSpecification{{
+			Topic:             *topic,
+			NumPartitions:     3,
+			ReplicationFactor: 2}},
+		// Admin options
+		kafka.SetAdminOperationTimeout(maxDur))
+	if err != nil {
+		fmt.Printf("Failed to create topic: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Print results
+	for _, result := range results {
+		fmt.Printf("%s\n", result)
+	}
+
+	a.Close()
+}
+
+func produce() {
+	createTopic()
+	value := make([]byte, *msgSize)
 	rand.Read(value)
-	var p, err = kafka.NewProducer(&kafka.ConfigMap{"bootstrap.servers": &addr, "linger.ms": 100})
+	var p, err = kafka.NewProducer(&kafka.ConfigMap{"bootstrap.servers": *addr, "linger.ms": 100, "request.required.acks": 0})
 	if err != nil {
 		log.Printf("could not set up kafka producer: %s", err.Error())
 		os.Exit(1)
@@ -84,14 +125,19 @@ func produce(){
 	go func() {
 		var msgCount int
 		for e := range p.Events() {
-			msg := e.(*kafka.Message);
-			if msg.TopicPartition.Error != nil {
-				log.Printf("delivery report error: %v", msg.TopicPartition.Error)
-				os.Exit(1)
-			}
-			msgCount++
-			if msgCount >= &numMessages {
-				done <- true
+			switch e.(type) {
+
+			case *kafka.Message:
+				msg := e.(*kafka.Message)
+				if msg.TopicPartition.Error != nil {
+					log.Printf("delivery report error: %v", msg.TopicPartition.Error)
+					os.Exit(1)
+				}
+				msgCount++
+				if msgCount >= *numMessages {
+					done <- true
+					return
+				}
 			}
 		}
 	}()
@@ -99,32 +145,27 @@ func produce(){
 	defer p.Close()
 
 	var start = time.Now()
-	for j := 0; j < &numMessages; j++ {
-		p.ProduceChannel() <- &kafka.Message{TopicPartition: kafka.TopicPartition{Topic: &topic, Partition: int32(partition)}, Value: value}
+	for j := 0; j < *numMessages; j++ {
+		p.ProduceChannel() <- &kafka.Message{TopicPartition: kafka.TopicPartition{Topic: topic, Partition: kafka.PartitionAny}, Value: value}
 	}
 	<-done
 	elapsed := time.Since(start)
 
-	log.Printf("[confluent-kafka-go producer] msg/s: %f", (float64(&numMessages) / elapsed.Seconds()))
-		
-
-
+	log.Printf("[confluent-kafka-go producer] msg/s: %f", (float64(*numMessages) / elapsed.Seconds()))
 
 }
 
-
-func consume(){
-	var poll = true
+func consume() {
 
 	group, _ := newUUID()
 
 	c, err := kafka.NewConsumer(&kafka.ConfigMap{
-		"bootstrap.servers":               brokers,
+		"bootstrap.servers":               *addr,
 		"group.id":                        group,
 		"session.timeout.ms":              6000,
 		"go.application.rebalance.enable": false,
-		"enable.auto.commit":			   false,
-		"auto.offset.reset": "earliest",
+		"enable.auto.commit":              false,
+		"auto.offset.reset":               "earliest",
 	})
 
 	if err != nil {
@@ -132,12 +173,12 @@ func consume(){
 		os.Exit(1)
 	}
 
-	c.SubscribeTopics([]string{&topic}, nil)
+	c.SubscribeTopics([]string{*topic}, nil)
 
 	var start = time.Now()
 
 	var msgCount = 0
-	for msgCount < &numMessages {
+	for msgCount < *numMessages {
 		ev := c.Poll(100)
 		if ev == nil {
 			continue
@@ -159,5 +200,14 @@ func consume(){
 
 	elapsed := time.Since(start)
 
-	log.Printf("[conflunet-kafka-go consumer] msg/s: %f", (float64(&numMessages) / elapsed.Seconds()))
+	log.Printf("[conflunet-kafka-go consumer] msg/s: %f", (float64(*numMessages) / elapsed.Seconds()))
+}
+
+func main() {
+	flag.Parse()
+	if *mode == "p" {
+		produce()
+	} else {
+		consume()
+	}
 }

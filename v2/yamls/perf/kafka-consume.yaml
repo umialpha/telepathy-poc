@@ -1,0 +1,20 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: kafka-consumer
+  namespace: telepathy
+  labels:
+    app: kafka-consumer
+spec:
+    template:
+      spec:
+        restartPolicy: Never
+        containers:
+        - name: telepathy-poc-client
+          image: kuberegistry0.azurecr.io/telepathy.poc.kafka:v1 
+          command: ["/go/bin/kafka"]
+          args: ["-n", "5000000", "-mode", "c", "-t", "bench-kafka"]
+          resources:
+            requests:
+              cpu: "3"       
+              memory: "8Gi"

@@ -97,8 +97,8 @@ func (c *kafkaClient) Produce(queueName string, value []byte, opt ...interface{}
 		fmt.Printf("Delivery failed: %v\n", m.TopicPartition.Error)
 		return m.TopicPartition.Error
 	} else {
-		fmt.Printf("Delivered message to topic %s, message: %s\n",
-			*m.TopicPartition.Topic, m.Value)
+		fmt.Printf("Delivered message to topic %s\n",
+			*m.TopicPartition.Topic)
 	}
 	return nil
 }

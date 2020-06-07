@@ -1,0 +1,25 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: grpc-client
+  namespace: telepathy
+  labels:
+    app: grpc-client
+spec:
+    template:
+      spec:
+        restartPolicy: Never
+        containers:
+        - name: grpc-client
+          image: kuberegistry0.azurecr.io/grpc-bench:v1
+          command: ["/go/bin/client"]
+          args: ["-test_name", "client", "-c", "5", "-r", "10000","-ip", "grpc-server.telepathy.svc.cluster.local"]
+          resources:
+            requests:
+              cpu: "3"       
+              memory: "8Gi"
+        tolerations:
+        - key: "CPU"
+          operator: "Equal"
+          value: "High"
+          effect: "NoSchedule"

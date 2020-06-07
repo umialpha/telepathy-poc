@@ -1,0 +1,45 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: grpc-server
+  namespace: telepathy
+  labels:
+    app: grpc-server
+spec:
+  ports:
+  - port: 50051
+    targetPort: 50051
+  selector:
+    app: grpc-server
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grpc-server
+  namespace: telepathy
+  labels:
+    app: grpc-server
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: grpc-server
+  template:
+    metadata:
+      labels:
+        app: grpc-server
+    spec:
+      containers:
+      - name: telepathy-poc
+        image: kuberegistry0.azurecr.io/grpc-bench:v1
+        command: ["/go/bin/server"]
+        args: ["-test_name", "svc"]
+        ports:
+        - containerPort: 50051
+        resources:
+          requests:
+            cpu: "3" 
+            memory: "12Gi"        
+
+        

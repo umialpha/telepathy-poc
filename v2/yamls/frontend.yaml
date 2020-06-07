@@ -21,7 +21,7 @@ metadata:
   labels:
     app: telepathy-fe
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       app: telepathy-fe
@@ -32,7 +32,7 @@ spec:
     spec:
       containers:
       - name: telepathy-poc
-        image: kuberegistry0.azurecr.io/telepathy.poc:v2.2
+        image: kuberegistry0.azurecr.io/telepathy.poc:v2.5
         command: ["/go/bin/frontend"]
         args: ["-q", "bootstrap.kafka.svc.cluster.local:9092", "-p", "4001"]
         ports:
@@ -40,6 +40,6 @@ spec:
         resources:
           requests:
             cpu: "3" 
-        
+            memory: "12Gi"        
 
         

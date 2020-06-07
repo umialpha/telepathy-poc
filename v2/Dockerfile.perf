@@ -1,0 +1,9 @@
+FROM golang
+
+ADD . /go/src/telepathy.poc/
+
+WORKDIR /go/src/telepathy.poc
+
+ENV GO111MODULE=on
+
+RUN go install ./perf/kafka 

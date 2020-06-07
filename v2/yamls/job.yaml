@@ -1,0 +1,25 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: telepathy-client
+  namespace: telepathy
+  labels:
+    app: telepathy-client
+spec:
+    template:
+      spec:
+        restartPolicy: Never
+        containers:
+        - name: telepathy-poc-client
+          image: kuberegistry0.azurecr.io/telepathy.poc:v2.10
+          command: ["/go/bin/client"]
+          args: ["-addr", "telepathy-fe.telepathy.svc.cluster.local:4001", "-n", "1000000", "-c", "5", "-t", "240"]
+          resources:
+            requests:
+              cpu: "15"       
+              memory: "8Gi"
+        tolerations:
+        - key: "CPU"
+          operator: "Equal"
+          value: "High"
+          effect: "NoSchedule"
