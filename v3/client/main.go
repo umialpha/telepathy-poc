@@ -211,12 +211,12 @@ func main() {
 	}
 	fmt.Println("Perf CreateJob Duration:", time.Since(startTime))
 
-	done := make(chan bool)
+	//done := make(chan bool)
 	for i := 0; i < *reqNum; i++ {
 		client.SendTask(jobID, int32(i+1))
 	}
 	go func() {
-		defer close(done)
+		//	defer close(done)
 		fmt.Println("test")
 		var msgCount int
 		eventChan := client.kfclient.Producer().Events()
@@ -238,8 +238,8 @@ func main() {
 			}
 		}
 	}()
-	<-done
-	fmt.Printf("SendTask Count %v, Cost %v\n", *reqNum, time.Since(startTime))
+	//<-done
+	//fmt.Printf("SendTask Count %v, Cost %v\n", *reqNum, time.Since(startTime))
 	resps := client.GetResponse(jobID, *reqNum, *respTimeout)
 	elapsed := time.Since(startTime)
 	fmt.Printf("Job Count %v, Duration Sec %v \n", len(resps), elapsed.Seconds())

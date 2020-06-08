@@ -6,7 +6,7 @@ metadata:
   labels:
     app: be
 spec:
-  replicas: 1
+  replicas: 3
   selector:
     matchLabels:
       app: be
@@ -17,10 +17,10 @@ spec:
     spec:
       containers:
       - name: poc
-        image: kuberegistry0.azurecr.io/t.poc:v3.0
+        image: kuberegistry0.azurecr.io/t.poc:v3.4
         command: ["/go/bin/backend"]
-        args: ["-q", "bootstrap.kafka.svc.cluster.local:9092", "-w", "wk-%d.wk.t.svc.cluster.local:4002", "-n", "1" ]
+        args: ["-j", "JOB-QUEUE-V3-1", "-q", "bootstrap.kafka.svc.cluster.local:9092", "-w", "wk-%d.wk.t.svc.cluster.local:4002", "-n", "3" ]
         resources:
           requests:
             cpu: "3"
-            memory: "12Gi"
+            memory: "4Gi"

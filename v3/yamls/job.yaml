@@ -11,15 +11,15 @@ spec:
         restartPolicy: Never
         containers:
         - name: client
-          image: kuberegistry0.azurecr.io/t.poc:v3.1
+          image: kuberegistry0.azurecr.io/t.poc:v3.4
           command: ["/go/bin/client"]
-          args: ["-addr", "fe.t.svc.cluster.local:4001", "-q", "bootstrap.kafka.svc.cluster.local:9092", "-n", "500000",  "-t", "70"]
+          args: ["-addr", "fe.t.svc.cluster.local:4001", "-q", "bootstrap.kafka.svc.cluster.local:9092", "-n", "500000",  "-t", "60"]
           resources:
             requests:
-              cpu: "3"       
+              cpu: "14"       
               memory: "8Gi"
- #    tolerations:
- #        - key: "CPU"
- #        operator: "Equal"
- #        value: "High"
- #        effect: "NoSchedule"
+        tolerations:
+        - key: "CPU"
+          operator: "Equal"
+          value: "High"
+          effect: "NoSchedule"

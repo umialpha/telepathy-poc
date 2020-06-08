@@ -53,6 +53,11 @@ func (s *BackendServer) run() {
 
 }
 
+func (s *BackendServer) runOneQueue() {
+	fmt.Println("test run one queue")
+	s.startJob()
+}
+
 func (s *BackendServer) startJob(jobID string) {
 	fmt.Println("startJob", jobID)
 	abortCh := make(chan int)
@@ -86,9 +91,9 @@ func (s *BackendServer) dispatchTask(jobID string, taskReq *pb.TaskRequest) {
 	idx := rand.Intn(len(s.workers))
 	//fmt.Printf("dispatchTask %v to client %v %v\n", taskReq, idx, s.workers[idx])
 	go func(i int) {
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-		_, err := s.workers[i].SendTask(ctx, &pb.TaskRequest{
+		// ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		//defer cancel()
+		_, err := s.workers[i].SendTask(context.Background(), &pb.TaskRequest{
 			JobID:  jobID,
 			TaskID: taskReq.TaskID,
 			Timestamp: &pb.ModifiedTime{

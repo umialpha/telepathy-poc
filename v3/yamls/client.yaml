@@ -8,7 +8,7 @@ metadata:
 spec:
     containers:
     - name: telepathy-poc-client
-      image: kuberegistry0.azurecr.io/telepathy.poc:v2.8
+      image: kuberegistry0.azurecr.io/telepathy.poc:v3.4
       command: ["/go/bin/client"]
       args: ["-addr", "telepathy-fe.telepathy.svc.cluster.local:4001", "-n", "1000000", "-c", "5"]
       resources:

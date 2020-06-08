@@ -29,13 +29,17 @@ func (s *frontendServer) CreateJob(ctx context.Context, request *pb.JobRequest) 
 		fmt.Println("CreateQueue Error %v", err)
 		return nil, err
 	}
-	go s.kfclient.Produce(*jobQueue, []byte(request.JobID))
+	s.kfclient.Produce(*jobQueue, []byte(request.JobID))
 	return &pb.JobResponse{
 		JobID: request.JobID,
 		Timestamp: &pb.ModifiedTime{
 			Client: request.Timestamp.Client,
 			Front:  time.Now().UnixNano(),
 		}}, nil
+}
+
+func (s *frontendServer) runOneQueue() {
+	err := s.kfclient.CreateQueues([]string{*jobQueue, endQueueName(*jobQueue)})
 }
 
 func (s *frontendServer) SendTask(ctx context.Context, request *pb.TaskRequest) (*pb.TaskResponse, error) {
@@ -60,6 +64,8 @@ func newServer() pb.FrontendSvcServer {
 	if err != nil {
 		panic(err)
 	}
+	// test read only one queue
+	s.CreateJob(context.Background(), &pb.JobRequest{JobID: *jobQueue})
 	return s
 }
 

@@ -44,8 +44,8 @@ func (c *KafkaClient) CreateQueues(names []string, opt ...interface{}) error {
 	for _, name := range names {
 		topicSpecs = append(topicSpecs, kafka.TopicSpecification{
 			Topic:             name,
-			NumPartitions:     1,
-			ReplicationFactor: 1,
+			NumPartitions:     3,
+			ReplicationFactor: 2,
 		})
 	}
 	results, err := a.CreateTopics(

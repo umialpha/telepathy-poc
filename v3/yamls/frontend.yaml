@@ -32,9 +32,9 @@ spec:
     spec:
       containers:
       - name: poc
-        image: kuberegistry0.azurecr.io/t.poc:v3.0
+        image: kuberegistry0.azurecr.io/t.poc:v3.4
         command: ["/go/bin/frontend"]
-        args: ["-q", "bootstrap.kafka.svc.cluster.local:9092", "-p", "4001"]
+        args: ["-j", "JOB-QUEUE-V3-1", "-q", "bootstrap.kafka.svc.cluster.local:9092", "-p", "4001"]
         ports:
         - containerPort: 4001
         resources:

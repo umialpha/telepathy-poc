@@ -1,22 +1,21 @@
 package main
 
 import (
-	"fmt"
-	"time"
+	"context"
 	"flag"
+	"fmt"
+	"os"
+	"time"
 
 	"gopkg.in/confluentinc/confluent-kafka-go.v1/kafka"
 )
 
-
 var (
-	broker = flag.String("-b", "localhost:9092", "broker addr")
-	topic = flag.String("-t", "new-topic-test", "topic")
-	value = flag.String("-v", "hello", "msg value")
-	num = flag.Int("-n", 100, "msg number")
-
+	broker = flag.String("b", "localhost:9092", "broker addr")
+	topic  = flag.String("t", "new-topic-test", "topic")
+	value  = flag.String("v", "hello", "msg value")
+	num    = flag.Int("n", 100, "msg number")
 )
-
 
 func getEvents(p *kafka.Producer) {
 	for e := range p.Events() {
@@ -40,8 +39,8 @@ func sendMsg(p *kafka.Producer, topic string, n int) {
 	for i := 0; i < n; i++ {
 		value := "Hello Go!"
 		p.ProduceChannel() <- &kafka.Message{TopicPartition: kafka.TopicPartition{
-			Topic: &topic, Partition: kafka.PartitionAny}, 
-			Value: []byte(value),
+			Topic: &topic, Partition: kafka.PartitionAny},
+			Value:     []byte(value),
 			Timestamp: time.Now()}
 	}
 
@@ -88,13 +87,33 @@ func createTopic() {
 	a.Close()
 }
 
+func DeleteTopic() error {
+	a, err := kafka.NewAdminClient(&kafka.ConfigMap{"bootstrap.servers": *broker})
+	if err != nil {
+		fmt.Println(err)
+		return nil
+	}
+	results, err := a.DeleteTopics(context.Background(), []string{*topic}, kafka.SetAdminOperationTimeout(time.Second*60))
+	if err != nil {
+		fmt.Printf("Failed to delete topics: %v\n", err)
+		return err
+	}
+
+	// Print results
+	for _, result := range results {
+		fmt.Printf("%s\n", result)
+	}
+
+	a.Close()
+	return nil
+}
 
 func Consume(queueName string, groupID string, writeChan chan<- []byte, errCh chan<- error, abortCh <-chan int) {
 
 	defer close(writeChan)
 	defer close(errCh)
 	consumer, err := kafka.NewConsumer(&kafka.ConfigMap{
-		"bootstrap.servers":     c.brokerAddr,
+		"bootstrap.servers":     *broker,
 		"broker.address.family": "v4",
 		"group.id":              groupID,
 		"session.timeout.ms":    6000,
@@ -135,8 +154,8 @@ func Consume(queueName string, groupID string, writeChan chan<- []byte, errCh ch
 
 func main() {
 
-	
-
+	flag.Parse()
+	startTime := time.Now()
 	p, err := kafka.NewProducer(&kafka.ConfigMap{"bootstrap.servers": *broker, "request.required.acks": 0})
 
 	if err != nil {
@@ -145,22 +164,22 @@ func main() {
 	}
 
 	fmt.Printf("Created Producer %v\n", p)
-	go func(){
+	go func() {
 		createTopic()
 		sendMsg(p, *topic, *num)
-		
-	}
-	
+
+	}()
+
 	cnt := 0
 	writeChan := make(chan []byte, 1000)
 	errorChan := make(chan error, 1000)
 	abortCh := make(chan int)
-	go Consume(*topic, *topic, writeChan , errorChan, abortCh)
+	go Consume(*topic, *topic, writeChan, errorChan, abortCh)
 	run := true
-	for run{
+	for run {
 		select {
 		case <-writeChan:
-			cnt ++
+			cnt++
 			if cnt >= *num {
 				run = false
 			}
@@ -169,6 +188,7 @@ func main() {
 			break
 		}
 	}
-	abortCh <-1
-	
+	abortCh <- 1
+	DeleteTopic()
+	fmt.Println("Time Cost", time.Since(startTime))
 }
