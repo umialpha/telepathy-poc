@@ -195,7 +195,7 @@ func main() {
 	clients[0].CreateJob(jobID, int32(*reqNum))
 	defer clients[0].CloseJob(jobID)
 
-	startTime := time.Now()
+	//startTime := time.Now()
 
 	for t := 0; t < *reqNum; t++ {
 		go clients[t%len(clients)].SendTask(jobID, t)
