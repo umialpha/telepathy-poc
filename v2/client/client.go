@@ -195,7 +195,7 @@ func main() {
 	clients[0].CreateJob(jobID, int32(*reqNum))
 	defer clients[0].CloseJob(jobID)
 
-	//startTime := time.Now()
+	startTime := time.Now()
 
 	for t := 0; t < *reqNum; t++ {
 		go clients[t%len(clients)].SendTask(jobID, t)
@@ -225,8 +225,8 @@ func main() {
 
 		}
 	}
-	//elapsed := time.Since(startTime)
-	elapsed := time.Duration(maxEnd - minStart)
+	elapsed := time.Since(startTime)
+	//elapsed := time.Duration(maxEnd - minStart)
 	fmt.Printf("Job Count %v, Duration Sec %v \n", len(resps), elapsed.Seconds())
 	fmt.Println("Client CPU utilization Sec:", time.Duration(GetCPUTime()-cpuBeg).Seconds())
 	fmt.Println("qps:", float64(len(resps))/float64(elapsed.Seconds()))

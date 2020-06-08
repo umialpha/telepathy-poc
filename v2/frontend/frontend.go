@@ -30,7 +30,7 @@ func (s *frontendServer) CreateJob(ctx context.Context, request *pb.JobRequest) 
 		fmt.Println("CreateQueue Error %v", err)
 		return nil, err
 	}
-	s.kfclient.Produce(*jobQueue, []byte(request.JobID))
+	go s.kfclient.Produce(*jobQueue, []byte(request.JobID))
 	return &pb.JobResponse{
 		JobID: request.JobID,
 		Timestamp: &pb.ModifiedTime{
@@ -53,7 +53,7 @@ func (s *frontendServer) SendTask(ctx context.Context, request *pb.TaskRequest) 
 	if err != nil {
 		return value, err
 	}
-	s.kfclient.Produce(endQueueName(request.JobID), bytes)
+	go s.kfclient.Produce(endQueueName(request.JobID), bytes)
 	return value, nil
 
 }
