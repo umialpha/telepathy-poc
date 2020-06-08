@@ -84,7 +84,7 @@ func (s *BackendServer) startJob(jobID string) {
 
 func (s *BackendServer) dispatchTask(jobID string, taskReq *pb.TaskRequest) {
 	idx := rand.Intn(len(s.workers))
-	fmt.Printf("dispatchTask %v to client %v %v\n", taskReq, idx, s.workers[idx])
+	//fmt.Printf("dispatchTask %v to client %v %v\n", taskReq, idx, s.workers[idx])
 	go func(i int) {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()

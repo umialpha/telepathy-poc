@@ -92,6 +92,7 @@ func (c *KafkaClient) Produce(queueName string, value []byte, opt ...interface{}
 	c.producer.ProduceChannel() <- &kafka.Message{
 		TopicPartition: kafka.TopicPartition{Topic: &queueName, Partition: kafka.PartitionAny},
 		Value:          value,
+		Timestamp:      time.Now(),
 	}
 
 	return nil
@@ -132,6 +133,7 @@ func (c *KafkaClient) Consume(queueName string, groupID string, writeChan chan<-
 			}
 			switch e := ev.(type) {
 			case *kafka.Message:
+				fmt.Println("Message Latancy", time.Since(e.Timestamp))
 				writeChan <- e.Value
 			}
 		}
