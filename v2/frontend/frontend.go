@@ -78,6 +78,7 @@ func (s *frontendServer) GetResponse(req *pb.JobRequest, stream pb.FrontendSvc_G
 				fmt.Println("GetResp Unmarshel Error", err)
 				continue
 			}
+			resp.Timestamp.Worker = time.Now().UnixNano()
 			fmt.Println("Got Response TaskID, Resp Time ", resp.TaskID, resp.Timestamp)
 			if err := stream.Send(resp); err != nil {
 				fmt.Println("stream Send Err:%v", err)

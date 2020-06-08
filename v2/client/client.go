@@ -8,7 +8,6 @@ import (
 	"log"
 	"math"
 	"math/rand"
-	"sync/atomic"
 	"time"
 
 	"golang.org/x/sys/unix"
@@ -188,32 +187,21 @@ func main() {
 	for i := 0; i < *numConn; i++ {
 		clients = append(clients, NewTClient(*frontAddr))
 	}
-	//	defer func() {
-	//		for _, c := range clients {
-	//			c.CloseConn()
-	//		}
-	//	}()
+	defer func() {
+		for _, c := range clients {
+			c.CloseConn()
+		}
+	}()
 	clients[0].CreateJob(jobID, int32(*reqNum))
 	defer clients[0].CloseJob(jobID)
 
 	startTime := time.Now()
 
-	var errorNum int32
-	//var wg sync.WaitGroup
-	//wg.Add(*reqNum)
 	for t := 0; t < *reqNum; t++ {
-		go func(i int) {
-			//defer wg.Done()
-			_, err := clients[i%len(clients)].SendTask(jobID, i)
-			if err != nil {
-				atomic.AddInt32(&errorNum, 1)
-			}
-		}(t)
+		go clients[t%len(clients)].SendTask(jobID, t)
 	}
-	//wg.Wait()
-	//fmt.Println("SendTask Error Num", errorNum)
 
-	respChan := clients[0].GetResponse(jobID, int32(*reqNum) /*-errorNum*/)
+	respChan := clients[0].GetResponse(jobID, int32(*reqNum))
 	var resps []*pb.TaskResponse
 	stop := false
 	minStart := float64(time.Now().UnixNano())
@@ -225,7 +213,6 @@ func main() {
 				stop = true
 				break
 			}
-			//fmt.Println("GetResponse timestamp", resp.Timestamp)
 			resp.Timestamp.End = time.Now().UnixNano()
 			minStart = math.Min(float64(resp.Timestamp.Client), minStart)
 			maxEnd = math.Max(float64(resp.Timestamp.Worker), maxEnd)
@@ -238,35 +225,37 @@ func main() {
 
 		}
 	}
-	elapsed := time.Since(startTime)
-	//elapsed := time.Duration(maxEnd - minStart)
+	//elapsed := time.Since(startTime)
+	elapsed := time.Duration(maxEnd - minStart)
 	fmt.Printf("Job Count %v, Duration Sec %v \n", len(resps), elapsed.Seconds())
 	fmt.Println("Client CPU utilization Sec:", time.Duration(GetCPUTime()-cpuBeg).Seconds())
 	fmt.Println("qps:", float64(len(resps))/float64(elapsed.Seconds()))
 
-	// var hists []*stats.Histogram
-	// for i := 0; i < 5; i++ {
-	// 	hists = append(hists, stats.NewHistogram(hopts))
-	// }
-	// for _, resp := range resps {
-	// 	hists[0].Add(resp.Timestamp.Front - resp.Timestamp.Client)
-	// 	hists[1].Add(resp.Timestamp.Back - resp.Timestamp.Front)
-	// 	hists[2].Add(resp.Timestamp.Worker - resp.Timestamp.Back)
-	// 	hists[3].Add(resp.Timestamp.End - resp.Timestamp.Worker)
-	// 	hists[4].Add(resp.Timestamp.End - resp.Timestamp.Client)
-	// }
+	var hists []*stats.Histogram
+	for i := 0; i < 5; i++ {
+		hists = append(hists, stats.NewHistogram(hopts))
+	}
+	for _, resp := range resps {
+		hists[0].Add(resp.Timestamp.Front - resp.Timestamp.Client)
+		//hists[1].Add(resp.Timestamp.Back - resp.Timestamp.Front)
+		//hists[2].Add(resp.Timestamp.Worker - resp.Timestamp.Back)
 
-	// fmt.Println("Parse Client => Frontend Latency")
-	// parseHist(hists[0])
+		hists[2].Add(resp.Timestamp.Worker - resp.Timestamp.Front)
+		hists[3].Add(resp.Timestamp.End - resp.Timestamp.Worker)
+		hists[4].Add(resp.Timestamp.End - resp.Timestamp.Client)
+	}
+
+	fmt.Println("Parse Client => Frontend Latency")
+	parseHist(hists[0])
 
 	// fmt.Println("Parse Frontend => Backend Latency")
 	// parseHist(hists[1])
 
-	// fmt.Println("Parse Backend => Worker Latency")
-	// parseHist(hists[2])
+	fmt.Println("Parse Backend => Worker Latency")
+	parseHist(hists[2])
 
-	// fmt.Println("Parse Worker => Client Latency")
-	// parseHist(hists[3])
-	// fmt.Println("Parse End => End Latency")
-	// parseHist(hists[4])
+	fmt.Println("Parse Worker => Client Latency")
+	parseHist(hists[3])
+	fmt.Println("Parse End => End Latency")
+	parseHist(hists[4])
 }

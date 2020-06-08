@@ -86,11 +86,11 @@ func (c *kafkaClient) DeleteQueues(names []string, opt ...interface{}) error {
 }
 
 func (c *kafkaClient) Produce(queueName string, value []byte, opt ...interface{}) error {
-	deliveryChan := make(chan kafka.Event)
-	c.producer.Produce(&kafka.Message{
-		TopicPartition: kafka.TopicPartition{Topic: &queueName, Partition: kafka.PartitionAny},
-		Value:          value,
-	}, deliveryChan)
+	// deliveryChan := make(chan kafka.Event)
+	// c.producer.Produce(&kafka.Message{
+	// 	TopicPartition: kafka.TopicPartition{Topic: &queueName, Partition: kafka.PartitionAny},
+	// 	Value:          value,
+	// }, deliveryChan)
 	// e := <-deliveryChan
 	// m := e.(*kafka.Message)
 	// if m.TopicPartition.Error != nil {
@@ -100,6 +100,11 @@ func (c *kafkaClient) Produce(queueName string, value []byte, opt ...interface{}
 	// 	fmt.Printf("Delivered message to topic %s\n",
 	// 		*m.TopicPartition.Topic)
 	// }
+	c.producer.ProduceChannel() <- &kafka.Message{
+		TopicPartition: kafka.TopicPartition{Topic: &queueName, Partition: kafka.PartitionAny},
+		Value:          value,
+	}
+
 	return nil
 }
 
