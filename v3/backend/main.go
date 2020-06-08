@@ -24,26 +24,28 @@ var (
 
 type BackendServer struct {
 	workers  []pb.WorkerSvcClient
-	kfclient mq.IQueueClient
+	kfclient mq.KafkaClient
 }
 
 func (s *BackendServer) run() {
-	abort := make(chan int)
+	abortCh := make(chan int)
 	defer func() {
-		abort <- 1
+		abortCh <- 1
 	}()
-	ch, errCh := s.kfclient.Consume(*jobQueue, fmt.Sprintf("%s", rand.Int()), abort)
+	writeChan := make(chan []byte, 1000)
+	errorCh := make(chan error, 1000)
+
+	go s.kfclient.Consume(*jobQueue, fmt.Sprintf("%s", rand.Int()), writeChan, errorCh, abort)
 
 	fmt.Println("Start to Receive Job")
 
 	for {
 		select {
-		case err := <-errCh:
+		case err := <-errorCh:
 			fmt.Println("Consume Job Queue Error", err)
 			continue
-		case val := <-ch:
+		case val := <-writeChan:
 			jobID := string(val)
-			fmt.Println("Got Job", jobID)
 			go s.startJob(jobID)
 
 		}

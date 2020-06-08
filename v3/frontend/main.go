@@ -18,7 +18,7 @@ func endQueueName(que string) string {
 
 type frontendServer struct {
 	pb.UnimplementedFrontendSvcServer
-	kfclient mq.IQueueClient
+	kfclient mq.KafkaClient
 }
 
 func (s *frontendServer) CreateJob(ctx context.Context, request *pb.JobRequest) (*pb.JobResponse, error) {
@@ -39,19 +39,7 @@ func (s *frontendServer) CreateJob(ctx context.Context, request *pb.JobRequest) 
 }
 
 func (s *frontendServer) SendTask(ctx context.Context, request *pb.TaskRequest) (*pb.TaskResponse, error) {
-	fmt.Println("SendTask JobID TaskID: ", request.JobID, request.TaskID)
-
-	value := &pb.TaskResponse{
-		JobID:  request.JobID,
-		TaskID: request.TaskID,
-		Timestamp: &pb.ModifiedTime{
-			Client: request.Timestamp.Client,
-			Front:  time.Now().UnixNano(),
-			Back:   time.Now().UnixNano(),
-			Worker: time.Now().UnixNano(),
-		}}
-
-	return value, nil
+	return nil, nil
 
 }
 

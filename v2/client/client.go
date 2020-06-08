@@ -22,7 +22,7 @@ var (
 	frontAddr = flag.String("addr", "localhost:4001", "frontend server ip:port")
 	reqNum    = flag.Int("n", 1, "requeset num")
 	//numRPC    = flag.Int("r", 1, "The number of concurrent RPCs on each connection.")
-	numConn = flag.Int("c", 5, "The number of parallel connections.")
+	// numConn = flag.Int("c", 5, "The number of parallel connections.")
 	//warmupDur   = flag.Int("w", 10, "Warm-up duration in seconds")
 	respTimeout = flag.Int("t", 120, "Get Response Timeout in seconds")
 )
@@ -35,6 +35,7 @@ type TClient struct {
 	serverAddr string
 	client     pb.FrontendSvcClient
 	conn       *grpc.ClientConn
+	kfclient   mq.IQueueClient
 }
 
 func (c *TClient) CreateJob(jobID string, reqNum int32) error {
@@ -56,28 +57,22 @@ func (c *TClient) CreateJob(jobID string, reqNum int32) error {
 }
 
 func (c *TClient) SendTask(jobID string, taskID int) (*pb.TaskResponse, error) {
-	req := &pb.TaskRequest{
-		JobID:     jobID,
-		TaskID:    int32(taskID),
-		Timestamp: &pb.ModifiedTime{Client: time.Now().UnixNano()},
-	}
-
-	//ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	//defer cancel()
-	resp, err := c.client.SendTask(context.Background(), req)
+	value := &pb.TaskRequest{
+		JobID:  request.JobID,
+		TaskID: request.TaskID,
+		Timestamp: &pb.ModifiedTime{
+			Client: request.Timestamp.Client,
+		}}
+	bytes, err := proto.Marshal(value)
 	if err != nil {
-		fmt.Println("Send Task Err", err)
 		return nil, err
 	}
-	return resp, nil
+	go s.kfclient.Produce(request.JobID, bytes)
+	return nil, nil
 }
 
 func (c *TClient) GetResponse(jobID string, reqNum int32) chan *pb.TaskResponse {
-	kfclient, err := mq.NewKafkaClient(*qAddr)
-	if err != nil {
-		fmt.Println("Kafka client error", err)
-		return nil
-	}
+
 	respCh := make(chan *pb.TaskResponse, 1000)
 	go func() {
 		abort := make(chan int)
@@ -85,7 +80,7 @@ func (c *TClient) GetResponse(jobID string, reqNum int32) chan *pb.TaskResponse 
 			abort <- 1
 			close(respCh)
 		}()
-		ch, errCh := kfclient.Consume(endQueueName(jobID), jobID, abort)
+		ch, errCh := c.kfclient.Consume(endQueueName(jobID), jobID, abort)
 		for i := int32(0); i < reqNum; i++ {
 			select {
 			case err := <-errCh:
@@ -124,7 +119,12 @@ func NewTClient(addr string) *TClient {
 	c := &TClient{
 		serverAddr: addr,
 	}
-
+	kfclient, kerr := mq.NewKafkaClient(*qAddr)
+	if kerr != nil {
+		fmt.Println("Kafka client error", kerr)
+		return nil
+	}
+	c.kfclient = kfclient
 	conn, err := grpc.Dial(addr, grpc.WithInsecure())
 	if err != nil {
 		log.Fatalf("fail to dial: %v", err)
@@ -191,20 +191,13 @@ func main() {
 	if err != nil {
 		return
 	}
-	var clients []*TClient
-	for i := 0; i < *numConn; i++ {
-		clients = append(clients, NewTClient(*frontAddr))
-	}
-	defer func() {
-		for _, c := range clients {
-			c.CloseConn()
-		}
-	}()
-	clients[0].CreateJob(jobID, int32(*reqNum))
-	defer clients[0].CloseJob(jobID)
+	client := NewTClient(*frontAddr)
+	defer client.CloseConn()
+	client.CreateJob(jobID, int32(*reqNum))
+	defer client.CloseJob(jobID)
 
 	startTime := time.Now()
-
+	go client.SendTask(jobID, t)
 	for t := 0; t < *reqNum; t++ {
 		go clients[t%len(clients)].SendTask(jobID, t)
 	}
