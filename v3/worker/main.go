@@ -10,8 +10,8 @@ import (
 
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/proto"
-	"telepathy.poc/mq"
-	pb "telepathy.poc/protos"
+	"t.poc.v3/mq"
+	pb "t.poc.v3/protos"
 )
 
 var qAddr = flag.String("q", "localhost:9092", "mq addr")
@@ -23,11 +23,10 @@ func endQueueName(que string) string {
 
 type WorkerServer struct {
 	pb.UnimplementedWorkerSvcServer
-	kfclient mq.IQueueClient
+	kfclient *mq.KafkaClient
 }
 
 func (w *WorkerServer) SendTask(ctx context.Context, req *pb.TaskRequest) (*pb.TaskResponse, error) {
-	fmt.Println("SendTask", req.JobID, req.TaskID)
 
 	go w.doWork(req)
 	return &pb.TaskResponse{
@@ -52,6 +51,7 @@ func (w *WorkerServer) doWork(req *pb.TaskRequest) {
 		fmt.Println("DoWork Marshal Error", err)
 		return
 	}
+	fmt.Println("DoWork", value)
 	w.kfclient.Produce(endQueueName(req.JobID), bytes)
 }
 

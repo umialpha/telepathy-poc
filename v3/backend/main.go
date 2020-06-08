@@ -11,20 +11,20 @@ import (
 
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/proto"
-	"telepathy.poc/mq"
-	pb "telepathy.poc/protos"
+	"t.poc.v3/mq"
+	pb "t.poc.v3/protos"
 )
 
 var (
 	qAddr         = flag.String("q", "0.0.0.0:9092", "MQ ADDR")
 	workerAddrFmt = flag.String("w", "localhost:4002", "Worker Addr Format")
 	workerNum     = flag.Int("n", 5, "worker number")
-	jobQueue      = flag.String("j", "JOB-QUEUE", "Job Queue")
+	jobQueue      = flag.String("j", "JOB-QUEUE-V3", "Job Queue")
 )
 
 type BackendServer struct {
 	workers  []pb.WorkerSvcClient
-	kfclient mq.KafkaClient
+	kfclient *mq.KafkaClient
 }
 
 func (s *BackendServer) run() {
@@ -35,7 +35,7 @@ func (s *BackendServer) run() {
 	writeChan := make(chan []byte, 1000)
 	errorCh := make(chan error, 1000)
 
-	go s.kfclient.Consume(*jobQueue, fmt.Sprintf("%s", rand.Int()), writeChan, errorCh, abort)
+	go s.kfclient.Consume(*jobQueue, fmt.Sprintf("%s", rand.Int()), writeChan, errorCh, abortCh)
 
 	fmt.Println("Start to Receive Job")
 
@@ -55,47 +55,49 @@ func (s *BackendServer) run() {
 
 func (s *BackendServer) startJob(jobID string) {
 	fmt.Println("startJob", jobID)
-	abort := make(chan int)
+	abortCh := make(chan int)
 	defer func() {
-		abort <- 1
+		abortCh <- 1
 	}()
-	ch, errCh := s.kfclient.Consume(jobID, jobID, abort)
+	writeCh := make(chan []byte, 1000)
+	errorCh := make(chan error, 1000)
+	go s.kfclient.Consume(jobID, jobID, writeCh, errorCh, abortCh)
 
 	for {
 		select {
-		case err := <-errCh:
+		case err := <-errorCh:
 			fmt.Println("Consume Task Queue Error", err)
 			continue
-		case val := <-ch:
-			taskResp := &pb.TaskResponse{}
-			if err := proto.Unmarshal(val, taskResp); err != nil {
+		case val := <-writeCh:
+			taskReq := &pb.TaskRequest{}
+			if err := proto.Unmarshal(val, taskReq); err != nil {
 				fmt.Println("Error To Unmarshal task", err)
 				continue
 			}
 			//fmt.Println("Get Task %d", taskResp.TaskID)
-			go s.dispatchTask(jobID, taskResp)
+			go s.dispatchTask(jobID, taskReq)
 
 		}
 	}
 
 }
 
-func (s *BackendServer) dispatchTask(jobID string, taskResp *pb.TaskResponse) {
+func (s *BackendServer) dispatchTask(jobID string, taskReq *pb.TaskRequest) {
 	idx := rand.Intn(len(s.workers))
-	fmt.Printf("dispatchTask %v:%v to client %v %v\n", jobID, taskResp.TaskID, idx, s.workers[idx])
+	fmt.Printf("dispatchTask %v to client %v %v\n", taskReq, idx, s.workers[idx])
 	go func(i int) {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		_, err := s.workers[i].SendTask(ctx, &pb.TaskRequest{
 			JobID:  jobID,
-			TaskID: taskResp.TaskID,
+			TaskID: taskReq.TaskID,
 			Timestamp: &pb.ModifiedTime{
-				Client: taskResp.Timestamp.Client,
-				Front:  taskResp.Timestamp.Front,
+				Client: taskReq.Timestamp.Client,
+				Front:  taskReq.Timestamp.Front,
 				Back:   time.Now().UnixNano(),
 			}})
 		if err != nil {
-			fmt.Println("dispatchTask %v:%v to client %v %v error: %v\n", jobID, taskResp.TaskID, i, s.workers[i], err)
+			fmt.Println("dispatchTask %v:%v to client %v %v error: %v\n", jobID, taskReq.TaskID, i, s.workers[i], err)
 		}
 	}(idx)
 

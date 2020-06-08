@@ -22,9 +22,12 @@ func GetBytes(key interface{}) ([]byte, error) {
 }
 
 type KafkaClient struct {
-	IQueueClient
 	producer   *kafka.Producer
 	brokerAddr string
+}
+
+func (c *KafkaClient) Producer() *kafka.Producer {
+	return c.producer
 }
 
 func (c *KafkaClient) CreateQueues(names []string, opt ...interface{}) error {
@@ -41,8 +44,8 @@ func (c *KafkaClient) CreateQueues(names []string, opt ...interface{}) error {
 	for _, name := range names {
 		topicSpecs = append(topicSpecs, kafka.TopicSpecification{
 			Topic:             name,
-			NumPartitions:     2,
-			ReplicationFactor: 2,
+			NumPartitions:     1,
+			ReplicationFactor: 1,
 		})
 	}
 	results, err := a.CreateTopics(
@@ -137,10 +140,10 @@ func (c *KafkaClient) Consume(queueName string, groupID string, writeChan chan<-
 	return
 }
 
-func NewKafkaClient(mqAddr string) (KafkaClient, error) {
-	c := &kafkaClient{}
+func NewKafkaClient(mqAddr string) (*KafkaClient, error) {
+	c := &KafkaClient{}
 	c.brokerAddr = mqAddr
-	p, err := kafka.NewProducer(&kafka.ConfigMap{"bootstrap.servers": mqAddr})
+	p, err := kafka.NewProducer(&kafka.ConfigMap{"bootstrap.servers": mqAddr /*"linger.ms": 100*/})
 	if err != nil {
 		return nil, err
 	}

@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"google.golang.org/grpc"
-	"telepathy.poc/mq"
-	pb "telepathy.poc/protos"
+	"t.poc.v3/mq"
+	pb "t.poc.v3/protos"
 )
 
 func endQueueName(que string) string {
@@ -18,7 +18,7 @@ func endQueueName(que string) string {
 
 type frontendServer struct {
 	pb.UnimplementedFrontendSvcServer
-	kfclient mq.KafkaClient
+	kfclient *mq.KafkaClient
 }
 
 func (s *frontendServer) CreateJob(ctx context.Context, request *pb.JobRequest) (*pb.JobResponse, error) {
@@ -65,7 +65,7 @@ func newServer() pb.FrontendSvcServer {
 
 var qAddr = flag.String("q", "0.0.0.0:9092", "MQ ADDR")
 var port = flag.String("p", "4001", "server port")
-var jobQueue = flag.String("j", "JOB-QUEUE", "Job Queue")
+var jobQueue = flag.String("j", "JOB-QUEUE-V3", "Job Queue")
 
 func main() {
 	flag.Parse()

@@ -2,12 +2,14 @@ package main
 
 import (
 	"context"
+	"crypto/rand"
 	"flag"
 	"fmt"
 	"log"
-	"math/rand"
 	"time"
 
+	"github.com/confluentinc/confluent-kafka-go/kafka"
+	"golang.org/x/sys/unix"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/benchmark/stats"
 	"google.golang.org/protobuf/proto"
@@ -22,11 +24,15 @@ var (
 	respTimeout = flag.Int("t", 120, "Get Response Timeout in seconds")
 )
 
+func endQueueName(queue string) string {
+	return queue + "-END"
+}
+
 type TClient struct {
 	serverAddr string
 	client     pb.FrontendSvcClient
 	conn       *grpc.ClientConn
-	kfclient   mq.KafkaClient
+	kfclient   *mq.KafkaClient
 }
 
 func (c *TClient) CreateJob(jobID string, reqNum int32) error {
@@ -60,7 +66,7 @@ func (c *TClient) CloseJob(jobID string) {
 func (c *TClient) SendTask(jobID string, taskID int32) error {
 	value := &pb.TaskRequest{
 		JobID:  jobID,
-		TaskID: int32(i),
+		TaskID: int32(taskID),
 		Timestamp: &pb.ModifiedTime{
 			Client: time.Now().UnixNano(),
 		}}
@@ -68,16 +74,16 @@ func (c *TClient) SendTask(jobID string, taskID int32) error {
 	if err != nil {
 		return err
 	}
-	c.kfclient.Produce(request.JobID, bytes)
+	c.kfclient.Produce(jobID, bytes)
 	return err
 }
 
 func (c *TClient) GetResponse(jobID string, num int, timeout int) []*pb.TaskResponse {
 	writeCh := make(chan []byte, 1000)
 	abortCh := make(chan int)
-	errorCh := make(chan error, bool)
-	timeoutChan := time.After(timeout * time.Second)
-	go c.kfclient.Consume(jobID, jobId, writeCh, abortCh, errorCh)
+	errorCh := make(chan error)
+	timeoutChan := time.After(time.Duration(timeout) * time.Second)
+	go c.kfclient.Consume(endQueueName(jobID), endQueueName(jobID), writeCh, errorCh, abortCh)
 	var values []*pb.TaskResponse
 
 	stop := false
@@ -94,6 +100,7 @@ func (c *TClient) GetResponse(jobID string, num int, timeout int) []*pb.TaskResp
 				break
 			}
 
+			//fmt.Println("GerResponse", resp)
 			resp.Timestamp.End = time.Now().UnixNano()
 			values = append(values, resp)
 			if len(values) >= num {
@@ -105,7 +112,7 @@ func (c *TClient) GetResponse(jobID string, num int, timeout int) []*pb.TaskResp
 			break
 		}
 	}
-	abort <- 1
+	abortCh <- 1
 	return values
 }
 
@@ -135,13 +142,13 @@ func NewTClient(addr string) (*TClient, error) {
 }
 
 func NewJobID() (string, error) {
-	b := make([]byte, 8)
+	b := make([]byte, 16)
 	_, err := rand.Read(b)
 	if err != nil {
 		fmt.Println("NewJobID err", err)
 		return "", err
 	}
-	return fmt.Sprintf("%x-%x-%x", b[0:4], b[4:6], b[6:8]), nil
+	return fmt.Sprintf("%x-%x-%x-%x-%x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:]), nil
 }
 
 var hopts = stats.HistogramOptions{
@@ -181,10 +188,10 @@ func median(percentile float64, h *stats.Histogram) int64 {
 
 func main() {
 
-	cpuBeg := metrics.GetCPUTime()
+	cpuBeg := GetCPUTime()
 
 	flag.Parse()
-	fmt.Println("Flags:", *frontAddr, *reqNum, *numConn)
+	fmt.Println("Flags:", *frontAddr, *reqNum)
 
 	jobID, err := NewJobID()
 	fmt.Println("jobID", jobID)
@@ -192,22 +199,48 @@ func main() {
 		return
 	}
 
-	client := NewTClient(*frontAddr, *numConn)
+	client, cerr := NewTClient(*frontAddr)
+	if cerr != nil {
+		return
+	}
 	startTime := time.Now()
-	err := client.CreateJob(jobId, *reqNum)
+	err = client.CreateJob(jobID, int32(*reqNum))
 	if err != nil {
 		fmt.Println("CreateJob Error", err)
 		return
 	}
 	fmt.Println("Perf CreateJob Duration:", time.Since(startTime))
 
+	done := make(chan bool)
+	for i := 0; i < *reqNum; i++ {
+		client.SendTask(jobID, int32(i+1))
+	}
 	go func() {
-		for i := range *reqNum {
-			client.SendTask(jobId, int32(i))
+		defer close(done)
+		fmt.Println("test")
+		var msgCount int
+		eventChan := client.kfclient.Producer().Events()
+		for e := range eventChan {
+			switch e.(type) {
+			case *kafka.Message:
+				msg := e.(*kafka.Message)
+				if msg.TopicPartition.Error != nil {
+					fmt.Println("Delever error", msg.TopicPartition.Error)
+					return
+				}
+				msgCount++
+				if msgCount >= *reqNum {
+					return
+				}
+
+			default:
+				fmt.Printf("Ignored event")
+			}
 		}
 	}()
-
-	resps := client.GetResponse(jobID, int32(*reqNum))
+	<-done
+	fmt.Printf("SendTask Count %v, Cost %v\n", *reqNum, time.Since(startTime))
+	resps := client.GetResponse(jobID, *reqNum, *respTimeout)
 	elapsed := time.Since(startTime)
 	fmt.Printf("Job Count %v, Duration Sec %v \n", len(resps), elapsed.Seconds())
 	fmt.Println("Client CPU utilization Sec:", time.Duration(GetCPUTime()-cpuBeg).Seconds())

@@ -1,0 +1,70 @@
+0.0.0.0:9092 4001
+CreateJob JOB_ID: %v, REQ_NUM:%v 52fdfc07-2182-654f 5
+JOB-QUEUE-V3 (Topic 'JOB-QUEUE-V3' already exists.)
+52fdfc07-2182-654f (Topic '52fdfc07-2182-654f' already exists.)
+52fdfc07-2182-654f-END (Topic '52fdfc07-2182-654f-END' already exists.)
+CreateJob JOB_ID: %v, REQ_NUM:%v 52fdfc07-2182-654f 10000
+JOB-QUEUE-V3 (Topic 'JOB-QUEUE-V3' already exists.)
+52fdfc07-2182-654f (Topic '52fdfc07-2182-654f' already exists.)
+52fdfc07-2182-654f-END (Topic '52fdfc07-2182-654f-END' already exists.)
+CreateJob JOB_ID: %v, REQ_NUM:%v 52fdfc07-2182-654f 10000
+JOB-QUEUE-V3 (Topic 'JOB-QUEUE-V3' already exists.)
+52fdfc07-2182-654f (Topic '52fdfc07-2182-654f' already exists.)
+52fdfc07-2182-654f-END (Topic '52fdfc07-2182-654f-END' already exists.)
+CreateJob JOB_ID: %v, REQ_NUM:%v 52fdfc07-2182-654f-163f-5f0f9a621d72 10000
+JOB-QUEUE-V3 (Topic 'JOB-QUEUE-V3' already exists.)
+52fdfc07-2182-654f-163f-5f0f9a621d72
+52fdfc07-2182-654f-163f-5f0f9a621d72-END
+CreateJob JOB_ID: %v, REQ_NUM:%v 52fdfc07-2182-654f-163f-5f0f9a621d72 10000
+JOB-QUEUE-V3 (Topic 'JOB-QUEUE-V3' already exists.)
+52fdfc07-2182-654f-163f-5f0f9a621d72 (Topic '52fdfc07-2182-654f-163f-5f0f9a621d72' already exists.)
+52fdfc07-2182-654f-163f-5f0f9a621d72-END (Topic '52fdfc07-2182-654f-163f-5f0f9a621d72-END' already exists.)
+CreateJob JOB_ID: %v, REQ_NUM:%v 52fdfc07-2182-654f-163f-5f0f9a621d72 10000
+JOB-QUEUE-V3 (Topic 'JOB-QUEUE-V3' already exists.)
+52fdfc07-2182-654f-163f-5f0f9a621d72 (Topic '52fdfc07-2182-654f-163f-5f0f9a621d72' already exists.)
+52fdfc07-2182-654f-163f-5f0f9a621d72-END (Topic '52fdfc07-2182-654f-163f-5f0f9a621d72-END' already exists.)
+CreateJob JOB_ID: %v, REQ_NUM:%v 52fdfc07-2182-654f-163f-5f0f9a621d72 10000
+JOB-QUEUE-V3 (Topic 'JOB-QUEUE-V3' already exists.)
+52fdfc07-2182-654f-163f-5f0f9a621d72 (Topic '52fdfc07-2182-654f-163f-5f0f9a621d72' already exists.)
+52fdfc07-2182-654f-163f-5f0f9a621d72-END (Topic '52fdfc07-2182-654f-163f-5f0f9a621d72-END' already exists.)
+CreateJob JOB_ID: %v, REQ_NUM:%v 7abda28a-0c79-0d7e-c1c0-8897b920e20c 10000
+JOB-QUEUE-V3 (Topic 'JOB-QUEUE-V3' already exists.)
+7abda28a-0c79-0d7e-c1c0-8897b920e20c
+7abda28a-0c79-0d7e-c1c0-8897b920e20c-END
+CreateJob JOB_ID: %v, REQ_NUM:%v b9b29094-db7a-0cef-535f-8c2447519875 10000
+JOB-QUEUE-V3 (Topic 'JOB-QUEUE-V3' already exists.)
+b9b29094-db7a-0cef-535f-8c2447519875
+b9b29094-db7a-0cef-535f-8c2447519875-END
+CreateJob JOB_ID: %v, REQ_NUM:%v 94e6e0e2-ac47-114b-5a00-c3a41a8c01c2 10
+JOB-QUEUE-V3 (Topic 'JOB-QUEUE-V3' already exists.)
+94e6e0e2-ac47-114b-5a00-c3a41a8c01c2
+94e6e0e2-ac47-114b-5a00-c3a41a8c01c2-END
+CreateJob JOB_ID: %v, REQ_NUM:%v 8fe95d4a-4f4c-2887-89e8-b280c2b366f4 10
+JOB-QUEUE-V3 (Topic 'JOB-QUEUE-V3' already exists.)
+8fe95d4a-4f4c-2887-89e8-b280c2b366f4
+8fe95d4a-4f4c-2887-89e8-b280c2b366f4-END
+CreateJob JOB_ID: %v, REQ_NUM:%v 891cbad9-03d2-ffb5-966c-e22dc8f02634 1
+JOB-QUEUE-V3 (Topic 'JOB-QUEUE-V3' already exists.)
+891cbad9-03d2-ffb5-966c-e22dc8f02634
+891cbad9-03d2-ffb5-966c-e22dc8f02634-END
+CreateJob JOB_ID: %v, REQ_NUM:%v da3b6a30-2f6e-2cb8-7b1b-e9c41b854217 1
+JOB-QUEUE-V3 (Topic 'JOB-QUEUE-V3' already exists.)
+da3b6a30-2f6e-2cb8-7b1b-e9c41b854217
+da3b6a30-2f6e-2cb8-7b1b-e9c41b854217-END
+CreateJob JOB_ID: %v, REQ_NUM:%v 964cf632-41f4-1dcb-9f55-396d5e180bb8 1
+JOB-QUEUE-V3 (Topic 'JOB-QUEUE-V3' already exists.)
+964cf632-41f4-1dcb-9f55-396d5e180bb8
+964cf632-41f4-1dcb-9f55-396d5e180bb8-END
+CreateJob JOB_ID: %v, REQ_NUM:%v 30165e1e-fa2f-d739-416e-52a97e908eee 1
+JOB-QUEUE-V3 (Topic 'JOB-QUEUE-V3' already exists.)
+30165e1e-fa2f-d739-416e-52a97e908eee
+30165e1e-fa2f-d739-416e-52a97e908eee-END
+CreateJob JOB_ID: %v, REQ_NUM:%v c68023b6-8bcd-4da7-a662-aa14f794200a 2
+JOB-QUEUE-V3 (Topic 'JOB-QUEUE-V3' already exists.)
+c68023b6-8bcd-4da7-a662-aa14f794200a
+c68023b6-8bcd-4da7-a662-aa14f794200a-END
+CreateJob JOB_ID: %v, REQ_NUM:%v 429c15b8-af84-521b-b743-bde74f256a1e 10
+JOB-QUEUE-V3 (Topic 'JOB-QUEUE-V3' already exists.)
+429c15b8-af84-521b-b743-bde74f256a1e
+429c15b8-af84-521b-b743-bde74f256a1e-END
+signal: killed
