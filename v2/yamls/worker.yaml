@@ -35,7 +35,7 @@ spec:
     spec:
       containers:
       - name: telepathy-poc
-        image: kuberegistry0.azurecr.io/telepathy.poc:v2.5
+        image: kuberegistry0.azurecr.io/telepathy.poc:v3.1
         command: ["/go/bin/worker"]
         args: ["-q", "bootstrap.kafka.svc.cluster.local:9092", "-p", "4002"]
         ports:

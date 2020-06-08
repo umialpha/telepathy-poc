@@ -17,8 +17,6 @@ func endQueueName(que string) string {
 	return que + "-END"
 }
 
-
-
 type frontendServer struct {
 	pb.UnimplementedFrontendSvcServer
 	kfclient mq.IQueueClient
@@ -55,7 +53,7 @@ func (s *frontendServer) SendTask(ctx context.Context, request *pb.TaskRequest) 
 	if err != nil {
 		return value, err
 	}
-	s.kfclient.Produce(request.JobID, bytes)
+	s.kfclient.Produce(endQueueName(request.JobID), bytes)
 	return value, nil
 
 }
@@ -110,7 +108,6 @@ func newServer() pb.FrontendSvcServer {
 var qAddr = flag.String("q", "0.0.0.0:9092", "MQ ADDR")
 var port = flag.String("p", "4001", "server port")
 var jobQueue = flag.String("j", "JOB-QUEUE", "Job Queue")
-
 
 func main() {
 	flag.Parse()
