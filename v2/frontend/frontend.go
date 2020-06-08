@@ -46,8 +46,10 @@ func (s *frontendServer) SendTask(ctx context.Context, request *pb.TaskRequest) 
 		JobID:  request.JobID,
 		TaskID: request.TaskID,
 		Timestamp: &pb.ModifiedTime{
-			Client: request.Timestamp.Client,
-			Front:  time.Now().UnixNano(),
+			Client:  request.Timestamp.Client,
+			Front:   time.Now().UnixNano(),
+			Backend: time.Now().UnixNano(),
+			Worker:  time.Now().UnixNano(),
 		}}
 	bytes, err := proto.Marshal(value)
 	if err != nil {
@@ -59,34 +61,6 @@ func (s *frontendServer) SendTask(ctx context.Context, request *pb.TaskRequest) 
 }
 
 func (s *frontendServer) GetResponse(req *pb.JobRequest, stream pb.FrontendSvc_GetResponseServer) error {
-	fmt.Println("GetResponse JobID: ", req.JobID)
-	reqNum := req.ReqNum
-	jobID := req.JobID
-	abort := make(chan int)
-	defer func() {
-		abort <- 1
-	}()
-	ch, errCh := s.kfclient.Consume(endQueueName(jobID), jobID, abort)
-	for i := int32(0); i < reqNum; i++ {
-		select {
-		case err := <-errCh:
-			fmt.Println("Consume Backend Response Err: %v", err)
-			return err
-		case val := <-ch:
-			resp := &pb.TaskResponse{}
-			if err := proto.Unmarshal(val, resp); err != nil {
-				fmt.Println("GetResp Unmarshel Error", err)
-				continue
-			}
-			resp.Timestamp.Worker = time.Now().UnixNano()
-			fmt.Println("Got Response TaskID, Resp Time ", resp.TaskID, resp.Timestamp)
-			if err := stream.Send(resp); err != nil {
-				fmt.Println("stream Send Err:%v", err)
-				return err
-			}
-		}
-	}
-
 	return nil
 }
 

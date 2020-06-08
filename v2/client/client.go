@@ -4,7 +4,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"io"
 	"log"
 	"math"
 	"math/rand"
@@ -13,10 +12,13 @@ import (
 	"golang.org/x/sys/unix"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/benchmark/stats"
+	"google.golang.org/protobuf/proto"
+	"telepathy.poc/mq"
 	pb "telepathy.poc/protos"
 )
 
 var (
+	qAddr     = flag.String("q", "0.0.0.0:9092", "MQ ADDR")
 	frontAddr = flag.String("addr", "localhost:4001", "frontend server ip:port")
 	reqNum    = flag.Int("n", 1, "requeset num")
 	//numRPC    = flag.Int("r", 1, "The number of concurrent RPCs on each connection.")
@@ -67,34 +69,35 @@ func (c *TClient) SendTask(jobID string, taskID int) (*pb.TaskResponse, error) {
 }
 
 func (c *TClient) GetResponse(jobID string, reqNum int32) chan *pb.TaskResponse {
-	ch := make(chan *pb.TaskResponse, 1000)
-
-	//ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	stream, err := c.client.GetResponse(context.Background(), &pb.JobRequest{JobID: jobID, ReqNum: reqNum})
+	kfclient, err := mq.NewKafkaClient(*qAddr)
 	if err != nil {
-		log.Fatalf("GetResponse error %v.\n", err)
-		close(ch)
-		//cancel()
-		return ch
+		fmt.Println("Kafka client error", err)
+		return nil
 	}
+	ch := make(chan *pb.TaskResponse, 1000)
 	go func() {
-		for {
-			resp, err := stream.Recv()
-			if err == io.EOF {
-				close(ch)
-
-				break
+		abort := make(chan int)
+		defer func() {
+			abort <- 1
+		}()
+		ch, errCh := kfclient.Consume(endQueueName(jobID), jobID, abort)
+		for i := int32(0); i < reqNum; i++ {
+			select {
+			case err := <-errCh:
+				fmt.Println("Consume Backend Response Err: %v", err)
+				return
+			case val := <-ch:
+				resp := &pb.TaskResponse{}
+				if err := proto.Unmarshal(val, resp); err != nil {
+					fmt.Println("GetResp Unmarshel Error", err)
+					continue
+				}
+				resp.Timestamp.Worker = time.Now().UnixNano()
+				ch <- resp
 			}
-			if err != nil {
-				fmt.Println("GetStream err: ", err)
-				close(ch)
-				break
-			}
-			ch <- resp
-
 		}
-		//cancel()
 	}()
+
 	return ch
 }
 
@@ -216,7 +219,6 @@ func main() {
 			resp.Timestamp.End = time.Now().UnixNano()
 			minStart = math.Min(float64(resp.Timestamp.Client), minStart)
 			maxEnd = math.Max(float64(resp.Timestamp.Worker), maxEnd)
-
 			resps = append(resps, resp)
 		case <-time.After(time.Second * time.Duration((*respTimeout))):
 			fmt.Printf("Get Response Timeout, expected: %v, actual: %v\n", int32(*reqNum), len(resps))
@@ -225,9 +227,9 @@ func main() {
 
 		}
 	}
-	elapsed := time.Since(startTime)
-	//elapsed := time.Duration(maxEnd - minStart)
-	fmt.Printf("Job Count %v, Duration Sec %v \n", len(resps), elapsed.Seconds())
+	allTime := time.Since(startTime)
+	elapsed := time.Duration(maxEnd - minStart)
+	fmt.Printf("Job Count %v, All Duration Sec %v \n, Msg End - Start", len(resps), allTime.Seconds(), elapsed.Seconds)
 	fmt.Println("Client CPU utilization Sec:", time.Duration(GetCPUTime()-cpuBeg).Seconds())
 	fmt.Println("qps:", float64(len(resps))/float64(elapsed.Seconds()))
 
@@ -237,10 +239,8 @@ func main() {
 	}
 	for _, resp := range resps {
 		hists[0].Add(resp.Timestamp.Front - resp.Timestamp.Client)
-		//hists[1].Add(resp.Timestamp.Back - resp.Timestamp.Front)
-		//hists[2].Add(resp.Timestamp.Worker - resp.Timestamp.Back)
-
-		hists[2].Add(resp.Timestamp.Worker - resp.Timestamp.Front)
+		hists[1].Add(resp.Timestamp.Back - resp.Timestamp.Front)
+		hists[2].Add(resp.Timestamp.Worker - resp.Timestamp.Back)
 		hists[3].Add(resp.Timestamp.End - resp.Timestamp.Worker)
 		hists[4].Add(resp.Timestamp.End - resp.Timestamp.Client)
 	}
@@ -248,8 +248,8 @@ func main() {
 	fmt.Println("Parse Client => Frontend Latency")
 	parseHist(hists[0])
 
-	// fmt.Println("Parse Frontend => Backend Latency")
-	// parseHist(hists[1])
+	fmt.Println("Parse Frontend => Backend Latency")
+	parseHist(hists[1])
 
 	fmt.Println("Parse Backend => Worker Latency")
 	parseHist(hists[2])
