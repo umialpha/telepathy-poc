@@ -147,8 +147,8 @@ func (c *kafkaClient) Consume(queueName string, groupID string, abort <-chan int
 				}
 				switch e := ev.(type) {
 				case *kafka.Message:
-					fmt.Printf("Message on %s:\n%s\n",
-						e.TopicPartition, string(e.Value))
+					//fmt.Printf("Message on %s:\n%s\n",
+					//	e.TopicPartition, string(e.Value))
 					ch <- e.Value
 				}
 			}

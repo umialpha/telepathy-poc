@@ -27,6 +27,10 @@ var (
 	respTimeout = flag.Int("t", 120, "Get Response Timeout in seconds")
 )
 
+func endQueueName(queue string) string {
+	return queue + "-END"
+}
+
 type TClient struct {
 	serverAddr string
 	client     pb.FrontendSvcClient
@@ -74,11 +78,12 @@ func (c *TClient) GetResponse(jobID string, reqNum int32) chan *pb.TaskResponse 
 		fmt.Println("Kafka client error", err)
 		return nil
 	}
-	ch := make(chan *pb.TaskResponse, 1000)
+	respCh := make(chan *pb.TaskResponse, 1000)
 	go func() {
 		abort := make(chan int)
 		defer func() {
 			abort <- 1
+			close(respCh)
 		}()
 		ch, errCh := kfclient.Consume(endQueueName(jobID), jobID, abort)
 		for i := int32(0); i < reqNum; i++ {
@@ -92,13 +97,13 @@ func (c *TClient) GetResponse(jobID string, reqNum int32) chan *pb.TaskResponse 
 					fmt.Println("GetResp Unmarshel Error", err)
 					continue
 				}
-				resp.Timestamp.Worker = time.Now().UnixNano()
-				ch <- resp
+				//resp.Timestamp.Worker = time.Now().UnixNano()
+				respCh <- resp
 			}
 		}
 	}()
 
-	return ch
+	return respCh
 }
 
 func (c *TClient) CloseJob(jobID string) {
@@ -229,12 +234,12 @@ func main() {
 	}
 	allTime := time.Since(startTime)
 	elapsed := time.Duration(maxEnd - minStart)
-	fmt.Printf("Job Count %v, All Duration Sec %v \n, Msg End - Start", len(resps), allTime.Seconds(), elapsed.Seconds)
+	fmt.Printf("Job Count %v, All Duration Sec %v , Msg End - Start: %v", len(resps), allTime.Seconds(), elapsed.Seconds())
 	fmt.Println("Client CPU utilization Sec:", time.Duration(GetCPUTime()-cpuBeg).Seconds())
 	fmt.Println("qps:", float64(len(resps))/float64(elapsed.Seconds()))
 
 	var hists []*stats.Histogram
-	for i := 0; i < 5; i++ {
+	for i := 0; i < 6; i++ {
 		hists = append(hists, stats.NewHistogram(hopts))
 	}
 	for _, resp := range resps {
@@ -242,7 +247,8 @@ func main() {
 		hists[1].Add(resp.Timestamp.Back - resp.Timestamp.Front)
 		hists[2].Add(resp.Timestamp.Worker - resp.Timestamp.Back)
 		hists[3].Add(resp.Timestamp.End - resp.Timestamp.Worker)
-		hists[4].Add(resp.Timestamp.End - resp.Timestamp.Client)
+		hists[4].Add(resp.Timestamp.Worker - resp.Timestamp.Client)
+		hists[5].Add(resp.Timestamp.End - resp.Timestamp.Client)
 	}
 
 	fmt.Println("Parse Client => Frontend Latency")

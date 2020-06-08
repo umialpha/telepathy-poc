@@ -46,10 +46,10 @@ func (s *frontendServer) SendTask(ctx context.Context, request *pb.TaskRequest) 
 		JobID:  request.JobID,
 		TaskID: request.TaskID,
 		Timestamp: &pb.ModifiedTime{
-			Client:  request.Timestamp.Client,
-			Front:   time.Now().UnixNano(),
-			Backend: time.Now().UnixNano(),
-			Worker:  time.Now().UnixNano(),
+			Client: request.Timestamp.Client,
+			Front:  time.Now().UnixNano(),
+			Back:   time.Now().UnixNano(),
+			Worker: time.Now().UnixNano(),
 		}}
 	bytes, err := proto.Marshal(value)
 	if err != nil {
