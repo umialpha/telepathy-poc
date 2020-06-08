@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: Pod 
+metadata:
+  name: telepathy-client
+  namespace: telepathy
+  labels:
+    app: telepathy-client
+spec:
+    containers:
+    - name: telepathy-poc-client
+      image: kuberegistry0.azurecr.io/telepathy.poc:v2.8
+      command: ["/go/bin/client"]
+      args: ["-addr", "telepathy-fe.telepathy.svc.cluster.local:4001", "-n", "1000000", "-c", "5"]
+      resources:
+        requests:
+          cpu: "15"       
+          memory: "8Gi"
+    tolerations:
+    - key: "CPU"
+      operator: "Equal"
+      value: "High"
+      effect: "NoSchedule"

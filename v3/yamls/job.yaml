@@ -1,0 +1,25 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: client
+  namespace: t
+  labels:
+    app: client
+spec:
+    template:
+      spec:
+        restartPolicy: Never
+        containers:
+        - name: client
+          image: kuberegistry0.azurecr.io/t.poc:v3.0
+          command: ["/go/bin/client"]
+          args: ["-addr", "fe.t.svc.cluster.local:4001", "-q", "bootstrap.kafka.svc.cluster.local:9092", "-n", "500000",  "-t", "70"]
+          resources:
+            requests:
+              cpu: "3"       
+              memory: "8Gi"
+ #    tolerations:
+ #        - key: "CPU"
+ #        operator: "Equal"
+ #        value: "High"
+ #        effect: "NoSchedule"

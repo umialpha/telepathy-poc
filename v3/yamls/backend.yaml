@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: be
+  namespace: t
+  labels:
+    app: be
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: be
+  template:
+    metadata:
+      labels:
+        app: be
+    spec:
+      containers:
+      - name: poc
+        image: kuberegistry0.azurecr.io/t.poc:v3.0
+        command: ["/go/bin/backend"]
+        args: ["-q", "bootstrap.kafka.svc.cluster.local:9092", "-w", "wk-%d.wk.t.svc.cluster.local:4002", "-n", "1" ]
+        resources:
+          requests:
+            cpu: "3"
+            memory: "12Gi"
