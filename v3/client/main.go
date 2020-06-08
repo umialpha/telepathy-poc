@@ -22,6 +22,8 @@ var (
 	frontAddr   = flag.String("addr", "localhost:4001", "frontend server ip:port")
 	reqNum      = flag.Int("n", 5, "requeset num")
 	respTimeout = flag.Int("t", 120, "Get Response Timeout in seconds")
+	testOne     = flag.Bool("testOne", false, "test one queue")
+	jobQueue    = flag.String("j", "JOB-QUEUE-V3-1", "Job Queue")
 )
 
 func endQueueName(queue string) string {
@@ -193,31 +195,35 @@ func main() {
 	flag.Parse()
 	fmt.Println("Flags:", *frontAddr, *reqNum)
 
-	jobID, err := NewJobID()
-	fmt.Println("jobID", jobID)
-	if err != nil {
-		return
-	}
-
 	client, cerr := NewTClient(*frontAddr)
 	if cerr != nil {
 		return
 	}
 	startTime := time.Now()
-	err = client.CreateJob(jobID, int32(*reqNum))
-	if err != nil {
-		fmt.Println("CreateJob Error", err)
-		return
-	}
-	fmt.Println("Perf CreateJob Duration:", time.Since(startTime))
 
-	//done := make(chan bool)
+	var jobID string
+	if !*testOne {
+		jobID, err := NewJobID()
+		fmt.Println("jobID", jobID)
+		if err != nil {
+			return
+		}
+		err = client.CreateJob(jobID, int32(*reqNum))
+		if err != nil {
+			fmt.Println("CreateJob Error", err)
+			return
+		}
+		fmt.Println("Perf CreateJob Duration:", time.Since(startTime))
+
+	} else {
+		jobID = *jobQueue
+	}
+
 	for i := 0; i < *reqNum; i++ {
 		client.SendTask(jobID, int32(i+1))
 	}
 	go func() {
-		//	defer close(done)
-		fmt.Println("test")
+
 		var msgCount int
 		eventChan := client.kfclient.Producer().Events()
 		for e := range eventChan {
@@ -238,8 +244,7 @@ func main() {
 			}
 		}
 	}()
-	//<-done
-	//fmt.Printf("SendTask Count %v, Cost %v\n", *reqNum, time.Since(startTime))
+
 	resps := client.GetResponse(jobID, *reqNum, *respTimeout)
 	elapsed := time.Since(startTime)
 	fmt.Printf("Job Count %v, Duration Sec %v \n", len(resps), elapsed.Seconds())

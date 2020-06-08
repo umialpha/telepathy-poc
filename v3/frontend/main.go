@@ -12,6 +12,14 @@ import (
 	pb "t.poc.v3/protos"
 )
 
+var (
+	qAddr    = flag.String("q", "0.0.0.0:9092", "MQ ADDR")
+	port     = flag.String("p", "4001", "server port")
+	jobQueue = flag.String("j", "JOB-QUEUE-V3", "Job Queue")
+	testOne  = flag.Bool("testOne", false, "test one queue")
+	jobQueue = flag.String("j", "JOB-QUEUE-V3-1", "Job Queue")
+)
+
 func endQueueName(que string) string {
 	return que + "-END"
 }
@@ -40,6 +48,10 @@ func (s *frontendServer) CreateJob(ctx context.Context, request *pb.JobRequest) 
 
 func (s *frontendServer) runOneQueue() {
 	err := s.kfclient.CreateQueues([]string{*jobQueue, endQueueName(*jobQueue)})
+	if err != nil {
+		fmt.Println("CreateQueue Error %v", err)
+		return
+	}
 }
 
 func (s *frontendServer) SendTask(ctx context.Context, request *pb.TaskRequest) (*pb.TaskResponse, error) {
@@ -64,14 +76,13 @@ func newServer() pb.FrontendSvcServer {
 	if err != nil {
 		panic(err)
 	}
-	// test read only one queue
-	s.CreateJob(context.Background(), &pb.JobRequest{JobID: *jobQueue})
+	if *testOne {
+		// test read only one queue
+		s.runOneQueue()
+	}
+
 	return s
 }
-
-var qAddr = flag.String("q", "0.0.0.0:9092", "MQ ADDR")
-var port = flag.String("p", "4001", "server port")
-var jobQueue = flag.String("j", "JOB-QUEUE-V3", "Job Queue")
 
 func main() {
 	flag.Parse()

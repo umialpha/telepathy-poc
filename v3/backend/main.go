@@ -19,7 +19,8 @@ var (
 	qAddr         = flag.String("q", "0.0.0.0:9092", "MQ ADDR")
 	workerAddrFmt = flag.String("w", "localhost:4002", "Worker Addr Format")
 	workerNum     = flag.Int("n", 5, "worker number")
-	jobQueue      = flag.String("j", "JOB-QUEUE-V3", "Job Queue")
+	testOne       = flag.Bool("testOne", false, "test one queue")
+	jobQueue      = flag.String("j", "JOB-QUEUE-V3-1", "Job Queue")
 )
 
 type BackendServer struct {
@@ -55,7 +56,7 @@ func (s *BackendServer) run() {
 
 func (s *BackendServer) runOneQueue() {
 	fmt.Println("test run one queue")
-	s.startJob()
+	s.startJob(*jobQueue)
 }
 
 func (s *BackendServer) startJob(jobID string) {
@@ -144,5 +145,10 @@ func main() {
 	flag.Parse()
 	fmt.Println("flags", *qAddr, *workerAddrFmt, *workerNum)
 	s := NewBackendServer()
-	s.run()
+	if !*testOne {
+		s.run()
+	} else {
+		s.runOneQueue()
+	}
+
 }
