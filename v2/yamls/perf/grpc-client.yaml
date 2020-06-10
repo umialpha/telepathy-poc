@@ -18,8 +18,3 @@ spec:
             requests:
               cpu: "3"       
               memory: "8Gi"
-        tolerations:
-        - key: "CPU"
-          operator: "Equal"
-          value: "High"
-          effect: "NoSchedule"

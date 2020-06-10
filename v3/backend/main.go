@@ -20,7 +20,7 @@ var (
 	workerAddrFmt = flag.String("w", "localhost:4002", "Worker Addr Format")
 	workerNum     = flag.Int("n", 5, "worker number")
 	testOne       = flag.Bool("testOne", false, "test one queue")
-	jobQueue      = flag.String("j", "JOB-QUEUE-V3-1", "Job Queue")
+	jobQueue      = flag.String("j", "JOB-QUEUE-V3-2", "Job Queue")
 )
 
 type BackendServer struct {

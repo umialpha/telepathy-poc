@@ -15,9 +15,8 @@ import (
 var (
 	qAddr    = flag.String("q", "0.0.0.0:9092", "MQ ADDR")
 	port     = flag.String("p", "4001", "server port")
-	jobQueue = flag.String("j", "JOB-QUEUE-V3", "Job Queue")
+	jobQueue = flag.String("j", "JOB-QUEUE-V3-2", "Job Queue")
 	testOne  = flag.Bool("testOne", false, "test one queue")
-	jobQueue = flag.String("j", "JOB-QUEUE-V3-1", "Job Queue")
 )
 
 func endQueueName(que string) string {
