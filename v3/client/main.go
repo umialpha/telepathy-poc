@@ -23,7 +23,7 @@ var (
 	reqNum      = flag.Int("n", 5, "requeset num")
 	respTimeout = flag.Int("t", 120, "Get Response Timeout in seconds")
 	testOne     = flag.Bool("testOne", false, "test one queue")
-	jobQueue    = flag.String("j", "JOB-QUEUE-V3-1", "Job Queue")
+	jobQueue    = flag.String("j", "JOB-QUEUE-V3-2", "Job Queue")
 )
 
 func endQueueName(queue string) string {
@@ -202,8 +202,9 @@ func main() {
 	startTime := time.Now()
 
 	var jobID string
+	var err error
 	if !*testOne {
-		jobID, err := NewJobID()
+		jobID, err = NewJobID()
 		fmt.Println("jobID", jobID)
 		if err != nil {
 			return
@@ -232,7 +233,7 @@ func main() {
 				msg := e.(*kafka.Message)
 				if msg.TopicPartition.Error != nil {
 					fmt.Println("Delever error", msg.TopicPartition.Error)
-					return
+					continue
 				}
 				msgCount++
 				if msgCount >= *reqNum {

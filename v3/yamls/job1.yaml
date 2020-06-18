@@ -1,16 +1,16 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: client
+  name: client1
   namespace: t
   labels:
-    app: client
+    app: client1
 spec:
     template:
       spec:
         restartPolicy: Never
         containers:
-        - name: client
+        - name: client1
           image: kuberegistry0.azurecr.io/t.poc:v3.4
           command: ["/go/bin/client"]
           args: ["-addr", "fe.t.svc.cluster.local:4001", "-q", "bootstrap.kafka.svc.cluster.local:9092", "-n", "500000",  "-t", "60"]
