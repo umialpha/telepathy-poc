@@ -1,0 +1,47 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: wk
+  namespace: t
+  labels:
+    app: wk
+spec:
+  ports:
+  - port: 4002
+    protocol: TCP
+    targetPort: 4002
+  clusterIP: None
+  selector:
+    app: wk
+---
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: wk
+  namespace: t
+  labels:
+    app: wk
+spec:
+  serviceName: "wk"
+  replicas: 3
+  selector:
+    matchLabels:
+      app: wk
+  template:
+    metadata:
+      labels:
+        app: wk
+    spec:
+      containers:
+      - name: telepathy-poc
+        image: kuberegistry0.azurecr.io/t.poc:v3.4
+        command: ["/go/bin/worker"]
+        args: ["-q", "bootstrap.kafka.svc.cluster.local:9092", "-p", "4002"]
+        ports:
+        - containerPort: 4002
+        resources:
+          requests:
+            cpu: "3"
+            memory: "12Gi"
+            
