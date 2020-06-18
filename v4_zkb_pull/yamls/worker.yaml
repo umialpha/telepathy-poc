@@ -1,25 +1,33 @@
-apiVersion: batch/v1
-kind: Job
+
+
+
+apiVersion: apps/v1
+kind: Deployment
 metadata:
   name: worker
   namespace: t
   labels:
     app: worker
 spec:
-    template:
-      spec:
-        restartPolicy: Never
-        containers:
-        - name: worker
-          image: kuberegistry0.azurecr.io/t.poc:v4.0.0
-          command: ["/go/bin/worker"]
-          args: ["-s", "dispatcher.t.svc.cluster.local:4002", "-cpu_tick", "1000", "-test_name": "wk"]
+  replicas: 10
+  selector:
+    matchLabels:
+      app: worker
+  template:
+    metadata:
+      labels:
+        app: worker
+    spec:
+      containers:
+      - name: worker
+        image: kuberegistry0.azurecr.io/t.poc:v4.0.0
+        command: ["/go/bin/worker"]
+          args: ["-s", "dispatcher.t.svc.cluster.local:4002", "-cpu_tick", "1000", "-test_name": "wk", "-c", "60"]
           resources:
             requests:
               cpu: "3"       
               memory: "4Gi"
-        tolerations:
-        - key: "CPU"
-          operator: "Equal"
-          value: "High"
-          effect: "NoSchedule"
+       
+
+
+

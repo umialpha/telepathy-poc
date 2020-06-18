@@ -31,6 +31,7 @@ type Worker struct {
 }
 
 func (w *Worker) Run() {
+
 	w.bench.Start()
 	running := true
 	for running {
@@ -45,6 +46,7 @@ func (w *Worker) Run() {
 	w.wg.Wait()
 	fmt.Println("END Run")
 	w.bench.End()
+	fmt.Printf("duration: %v", w.bench.Duration())
 	w.bench.CPUUsage()
 	fmt.Printf("(50/90/99 %%ile): %v/%v/%v\n",
 		time.Duration(metric.Median(.5, w.hist)),
@@ -105,7 +107,9 @@ func NewWorker() *Worker {
 }
 
 func main() {
+	forever := make(chan int)
 	flag.Parse()
 	w := NewWorker()
-	w.Run()
+	go w.Run()
+	<-forever
 }
