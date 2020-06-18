@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package protos;
+
+service DispatcherSvr {
+    rpc req_task (TaskRequest) returns (TaskResponse);
+	rpc fin_task(TaskRequest) returns (TaskResponse);
+}
+
+
+message TaskRequest {
+	int32 TaskId = 1;
+}
+
+message TaskResponse {
+	int32 TaskId = 1;
+}
