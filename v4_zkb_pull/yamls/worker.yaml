@@ -20,13 +20,13 @@ spec:
     spec:
       containers:
       - name: worker
-        image: kuberegistry0.azurecr.io/t.poc:v4.0.0
+        image: kuberegistry0.azurecr.io/t.poc:v4.0.2
         command: ["/go/bin/worker"]
-          args: ["-s", "dispatcher.t.svc.cluster.local:4002", "-cpu_tick", "1000", "-test_name": "wk", "-c", "60"]
-          resources:
-            requests:
-              cpu: "3"       
-              memory: "4Gi"
+        args: ["-s", "dispatcher.t.svc.cluster.local:4002", "-cpu_tick", "1000", "-test_name","wk", "-c", "60"]
+        resources:
+          requests:
+            cpu: "3"       
+            memory: "4Gi"
        
 
 

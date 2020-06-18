@@ -72,6 +72,12 @@ func (w *Worker) doWork() {
 		fmt.Println("ReqTask Err", err)
 		return
 	}
+	// task 0 means it is still warm-up time
+	if resp.TaskId == 0 {
+		time.Sleep(100 * time.Millisecond)
+		return
+	}
+	// task -1 means there is no task
 	if resp.TaskId < 0 {
 		w.done <- true
 		return
