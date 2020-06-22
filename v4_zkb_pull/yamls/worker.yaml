@@ -9,7 +9,7 @@ metadata:
   labels:
     app: worker
 spec:
-  replicas: 10
+  replicas: 300
   selector:
     matchLabels:
       app: worker
@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
       - name: worker
-        image: kuberegistry0.azurecr.io/t.poc:v4.0.2
+        image: zkbpoc.azurecr.io/zkb-pull:v0
         command: ["/go/bin/worker"]
         args: ["-s", "dispatcher.t.svc.cluster.local:4002", "-cpu_tick", "1000", "-test_name","wk", "-c", "60"]
         resources:
