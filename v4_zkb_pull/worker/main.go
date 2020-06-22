@@ -13,11 +13,13 @@ import (
 )
 
 var (
-	taskCost     = flag.Int("c", 600, "task calculationo time in millisecond")
+	taskCost     = flag.Int("c", 60, "task calculationo time in millisecond")
 	taskParallel = flag.Int("p", 4, "task in parallel")
 	svcAddr      = flag.String("s", "localhost:4002", "dispatcher address")
 	testName     = flag.String("test_name", "", "Name of the test used for creating profiles.")
 	cpuTick      = flag.Int("cpu_tick", 0, "if set, it will sampling cpu usage in 'cpu_tick' millisecond")
+	rqSize       = flag.Int("req", 1, "Request message size in bytes.")
+	rspSize      = flag.Int("resp", 1, "Response message size in bytes.")
 )
 
 type Worker struct {
@@ -65,7 +67,7 @@ func (w *Worker) doWork() {
 	defer cancel()
 
 	st := time.Now()
-	resp, err := w.client.ReqTask(ctx, &pb.TaskRequest{TaskId: 0})
+	resp, err := w.client.ReqTask(ctx, &pb.TaskRequest{TaskId: 0, Body: make([]byte, *rqSize)})
 	rElapsed := time.Since(st).Nanoseconds()
 
 	if err != nil {
@@ -84,7 +86,7 @@ func (w *Worker) doWork() {
 	}
 	time.Sleep(time.Duration(*taskCost) * time.Millisecond)
 	st = time.Now()
-	w.client.FinTask(context.Background(), &pb.TaskRequest{TaskId: resp.TaskId})
+	w.client.FinTask(context.Background(), &pb.TaskRequest{TaskId: resp.TaskId, Body: make([]byte, *rqSize)})
 	fElasped := time.Since(st).Nanoseconds()
 	w.histLock.Lock()
 	defer w.histLock.Unlock()

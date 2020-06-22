@@ -18,6 +18,8 @@ var (
 	testName   = flag.String("test_name", "", "Name of the test used for creating profiles.")
 	cpuTick    = flag.Int("cpu_tick", 0, "if set, it will sampling cpu usage in 'cpu_tick' millisecond")
 	warmUpTime = flag.Int("w", 120, "warmup time")
+	rqSize     = flag.Int("req", 1, "Request message size in bytes.")
+	rspSize    = flag.Int("resp", 1, "Response message size in bytes.")
 )
 
 var startTime time.Time
@@ -36,10 +38,10 @@ func (d *dispatcher) ReqTask(ctx context.Context, req *pb.TaskRequest) (*pb.Task
 	}
 	if task, ok := <-d.msgChan; ok {
 		d.ben.Start()
-		return &pb.TaskResponse{TaskId: int32(task)}, nil
+		return &pb.TaskResponse{TaskId: int32(task), Body: make([]byte, *rspSize)}, nil
 	} else {
 
-		return &pb.TaskResponse{TaskId: int32(-1)}, nil
+		return &pb.TaskResponse{TaskId: int32(-1), Body: make([]byte, *rspSize)}, nil
 	}
 
 }
@@ -53,7 +55,7 @@ func (d *dispatcher) FinTask(ctx context.Context, req *pb.TaskRequest) (*pb.Task
 		//d.Restart()
 
 	}
-	return &pb.TaskResponse{TaskId: req.TaskId}, nil
+	return &pb.TaskResponse{TaskId: req.TaskId, Body: make([]byte, *rspSize)}, nil
 }
 
 func (d *dispatcher) fetcher() {

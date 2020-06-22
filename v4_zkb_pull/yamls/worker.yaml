@@ -9,7 +9,7 @@ metadata:
   labels:
     app: worker
 spec:
-  replicas: 300
+  replicas: 100
   selector:
     matchLabels:
       app: worker
@@ -19,14 +19,38 @@ spec:
         app: worker
     spec:
       containers:
-      - name: worker
-        image: zkbpoc.azurecr.io/zkb-pull:v0
+      - name: worker1
+        image: kuberegistry0.azurecr.io.azurecr.io/zkb-pull:v0
         command: ["/go/bin/worker"]
-        args: ["-s", "dispatcher.t.svc.cluster.local:4002", "-cpu_tick", "1000", "-test_name","wk", "-c", "60"]
+        args: ["-s", "dispatcher.t.svc.cluster.local:4002", "-cpu_tick", "1000","-c", "60", "-p", "1", "-req", "204800"]
         resources:
           requests:
-            cpu: "3"       
-            memory: "4Gi"
+            cpu: "0.5"       
+            memory: "1Gi"
+      - name: worker2
+        image: kuberegistry0.azurecr.io/zkb-pull:v0
+        command: ["/go/bin/worker"]
+        args: ["-s", "dispatcher.t.svc.cluster.local:4002", "-cpu_tick", "1000", "-c", "60", "-p", "1", "-req", "204800"]
+        resources:
+          requests:
+            cpu: "0.5"       
+            memory: "1Gi"
+      - name: worker3
+        image: kuberegistry0.azurecr.io/zkb-pull:v0
+        command: ["/go/bin/worker"]
+        args: ["-s", "dispatcher.t.svc.cluster.local:4002", "-cpu_tick", "1000","-c", "60", "-p", "1", "-req", "204800"]
+        resources:
+            requests:
+            cpu: "0.5"       
+            memory: "1Gi"
+      - name: worker4
+        image: kuberegistry0.azurecr.io/zkb-pull:v0
+        command: ["/go/bin/worker"]
+        args: ["-s", "dispatcher.t.svc.cluster.local:4002", "-cpu_tick", "1000", "-c", "60", "-p", "1", "-req", "204800"]
+        resources:
+            requests:
+            cpu: "0.5"       
+            memory: "1Gi"
        
 
 
