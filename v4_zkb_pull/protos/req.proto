@@ -10,8 +10,10 @@ service DispatcherSvr {
 
 message TaskRequest {
 	int32 TaskId = 1;
+	bytes Body = 2;
 }
 
 message TaskResponse {
 	int32 TaskId = 1;
+	bytes Body = 2;
 }
