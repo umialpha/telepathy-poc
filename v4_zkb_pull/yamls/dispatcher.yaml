@@ -23,15 +23,15 @@ metadata:
 spec:
     containers:
     - name: dispatcher
-      image:  kuberegistry0.azurecr.io/zkb-pull:v0   
+      image:  zkbpoc.azurecr.io/zkb-pull:v1   
       command: ["/go/bin/dispatcher"]
-      args: ["-n", "1000000", "-w", "120", "-p", "4002", "-cpu_tick", "1000"]
+      args: ["-n", "100000", "-w", "160", "-p", "4002", "-cpu_tick", "1000"]
       ports:
         - containerPort: 4002
       resources:
         requests:
           cpu: "31"       
-          memory: "8Gi"
+          memory: "4Gi"
     tolerations:
     - key: "CPU"
       operator: "Equal"
