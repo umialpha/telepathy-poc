@@ -1,4 +1,4 @@
-#Telepathy-POC
+# Telepathy-POC
 
-Telepathy-POC is where we put our ideas about our telepathy v2 design.
+Telepathy-POC is the collections of our POC about telepathy v2.
 
