@@ -1,4 +1,4 @@
 # Telepathy-POC
 
-Telepathy-POC is the collections of our POC about telepathy v2.
+Telepathy-POC is the collection of our POC about telepathy v2.
 
