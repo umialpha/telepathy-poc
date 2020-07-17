@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "dgSpecHash": "VONYdNg0TbQmm094jOh+v+h+tq5pS04ARy0E0fgkUzRPV8ZVtzp8CbwXZ19f4uicpNdjTZF0m2LLb+vO1IOvcA==",
+  "success": true,
+  "projectFilePath": "D:\\gits\\telepathy-project\\poc\\dotnet_grpc_reflection\\GreeterServer\\GreeterServer.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\leli2.FAREAST\\.nuget\\packages\\google.protobuf\\3.12.3\\google.protobuf.3.12.3.nupkg.sha512",
+    "C:\\Users\\leli2.FAREAST\\.nuget\\packages\\grpc\\2.30.0\\grpc.2.30.0.nupkg.sha512",
+    "C:\\Users\\leli2.FAREAST\\.nuget\\packages\\grpc.core\\2.30.0\\grpc.core.2.30.0.nupkg.sha512",
+    "C:\\Users\\leli2.FAREAST\\.nuget\\packages\\grpc.core.api\\2.30.0\\grpc.core.api.2.30.0.nupkg.sha512",
+    "C:\\Users\\leli2.FAREAST\\.nuget\\packages\\grpc.reflection\\2.30.0\\grpc.reflection.2.30.0.nupkg.sha512",
+    "C:\\Users\\leli2.FAREAST\\.nuget\\packages\\system.memory\\4.5.3\\system.memory.4.5.3.nupkg.sha512"
+  ],
+  "logs": []
+}

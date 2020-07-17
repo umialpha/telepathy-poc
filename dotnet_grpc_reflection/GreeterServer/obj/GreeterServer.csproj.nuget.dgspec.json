@@ -1,0 +1,142 @@
+{
+  "format": 1,
+  "restore": {
+    "D:\\gits\\telepathy-project\\poc\\dotnet_grpc_reflection\\GreeterServer\\GreeterServer.csproj": {}
+  },
+  "projects": {
+    "D:\\gits\\telepathy-project\\poc\\dotnet_grpc_reflection\\GreeterServer\\GreeterServer.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "D:\\gits\\telepathy-project\\poc\\dotnet_grpc_reflection\\GreeterServer\\GreeterServer.csproj",
+        "projectName": "GreeterServer",
+        "projectPath": "D:\\gits\\telepathy-project\\poc\\dotnet_grpc_reflection\\GreeterServer\\GreeterServer.csproj",
+        "packagesPath": "C:\\Users\\leli2.FAREAST\\.nuget\\packages\\",
+        "outputPath": "D:\\gits\\telepathy-project\\poc\\dotnet_grpc_reflection\\GreeterServer\\obj\\",
+        "projectStyle": "PackageReference",
+        "fallbackFolders": [
+          "C:\\Program Files\\dotnet\\sdk\\NuGetFallbackFolder"
+        ],
+        "configFilePaths": [
+          "C:\\Users\\leli2.FAREAST\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+        ],
+        "originalTargetFrameworks": [
+          "netcoreapp3.1"
+        ],
+        "sources": {
+          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "netcoreapp3.1": {
+            "projectReferences": {
+              "D:\\gits\\telepathy-project\\poc\\dotnet_grpc_reflection\\Greeter\\Greeter.csproj": {
+                "projectPath": "D:\\gits\\telepathy-project\\poc\\dotnet_grpc_reflection\\Greeter\\Greeter.csproj"
+              }
+            }
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        }
+      },
+      "frameworks": {
+        "netcoreapp3.1": {
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\3.1.301\\RuntimeIdentifierGraph.json"
+        }
+      }
+    },
+    "D:\\gits\\telepathy-project\\poc\\dotnet_grpc_reflection\\Greeter\\Greeter.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "D:\\gits\\telepathy-project\\poc\\dotnet_grpc_reflection\\Greeter\\Greeter.csproj",
+        "projectName": "Greeter",
+        "projectPath": "D:\\gits\\telepathy-project\\poc\\dotnet_grpc_reflection\\Greeter\\Greeter.csproj",
+        "packagesPath": "C:\\Users\\leli2.FAREAST\\.nuget\\packages\\",
+        "outputPath": "D:\\gits\\telepathy-project\\poc\\dotnet_grpc_reflection\\Greeter\\obj\\",
+        "projectStyle": "PackageReference",
+        "fallbackFolders": [
+          "C:\\Program Files\\dotnet\\sdk\\NuGetFallbackFolder"
+        ],
+        "configFilePaths": [
+          "C:\\Users\\leli2.FAREAST\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+        ],
+        "originalTargetFrameworks": [
+          "netstandard2.0"
+        ],
+        "sources": {
+          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "netstandard2.0": {
+            "projectReferences": {}
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        }
+      },
+      "frameworks": {
+        "netstandard2.0": {
+          "dependencies": {
+            "Google.Protobuf": {
+              "target": "Package",
+              "version": "[3.12.3, )"
+            },
+            "Grpc": {
+              "target": "Package",
+              "version": "[2.30.0, )"
+            },
+            "Grpc.Reflection": {
+              "target": "Package",
+              "version": "[2.30.0, )"
+            },
+            "Grpc.Tools": {
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[2.30.0, )"
+            },
+            "NETStandard.Library": {
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[2.0.3, )",
+              "autoReferenced": true
+            }
+          },
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\3.1.301\\RuntimeIdentifierGraph.json"
+        }
+      }
+    }
+  }
+}

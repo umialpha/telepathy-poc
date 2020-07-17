@@ -1,0 +1,15 @@
+E:\GitHub\grpc\examples\csharp\Helloworld\GreeterServer\bin\Debug\netcoreapp2.1\GreeterServer.deps.json
+E:\GitHub\grpc\examples\csharp\Helloworld\GreeterServer\bin\Debug\netcoreapp2.1\GreeterServer.runtimeconfig.json
+E:\GitHub\grpc\examples\csharp\Helloworld\GreeterServer\bin\Debug\netcoreapp2.1\GreeterServer.runtimeconfig.dev.json
+E:\GitHub\grpc\examples\csharp\Helloworld\GreeterServer\bin\Debug\netcoreapp2.1\GreeterServer.dll
+E:\GitHub\grpc\examples\csharp\Helloworld\GreeterServer\bin\Debug\netcoreapp2.1\GreeterServer.pdb
+E:\GitHub\grpc\examples\csharp\Helloworld\GreeterServer\bin\Debug\netcoreapp2.1\Greeter.dll
+E:\GitHub\grpc\examples\csharp\Helloworld\GreeterServer\bin\Debug\netcoreapp2.1\Greeter.pdb
+E:\GitHub\grpc\examples\csharp\Helloworld\GreeterServer\obj\Debug\netcoreapp2.1\GreeterServer.csprojAssemblyReference.cache
+E:\GitHub\grpc\examples\csharp\Helloworld\GreeterServer\obj\Debug\netcoreapp2.1\GreeterServer.csproj.CoreCompileInputs.cache
+E:\GitHub\grpc\examples\csharp\Helloworld\GreeterServer\obj\Debug\netcoreapp2.1\GreeterServer.AssemblyInfoInputs.cache
+E:\GitHub\grpc\examples\csharp\Helloworld\GreeterServer\obj\Debug\netcoreapp2.1\GreeterServer.AssemblyInfo.cs
+E:\GitHub\grpc\examples\csharp\Helloworld\GreeterServer\obj\Debug\netcoreapp2.1\GreeterServer.csproj.CopyComplete
+E:\GitHub\grpc\examples\csharp\Helloworld\GreeterServer\obj\Debug\netcoreapp2.1\GreeterServer.dll
+E:\GitHub\grpc\examples\csharp\Helloworld\GreeterServer\obj\Debug\netcoreapp2.1\GreeterServer.pdb
+E:\GitHub\grpc\examples\csharp\Helloworld\GreeterServer\obj\Debug\netcoreapp2.1\GreeterServer.genruntimeconfig.cache
