@@ -29,7 +29,7 @@ var (
 var totalPubMsgCount int64
 var totalRecvMsgCount int64
 
-func pubWorker(td time.Duration, addr string, batchSize int, batch [][]byte, topic string, rdy *sync.WaitGroup, cond *sync.Cond) {
+func pubWorker(td time.Duration, addr string, batchSize int, batch [][]byte, topic string, rdy *sync.WaitGroup, startCh <-chan int) {
 	config := nsq.NewConfig()
 	producer, err := nsq.NewProducer(addr, config)
 	if err != nil {
@@ -37,7 +37,7 @@ func pubWorker(td time.Duration, addr string, batchSize int, batch [][]byte, top
 	}
 	// ready and wait to start
 	rdy.Done()
-	cond.Wait()
+	<-startCh
 
 	var msgCount int64
 	endTime := time.Now().Add(td)
@@ -73,7 +73,7 @@ func (h *myHandler) HandleMessage(m *nsq.Message) error {
 	return nil
 }
 
-func subWorker(td time.Duration, tcpAddrs []string, topic string, channel string, rdy *sync.WaitGroup, cond *sync.Cond) {
+func subWorker(td time.Duration, tcpAddrs []string, topic string, channel string, rdy *sync.WaitGroup, startCh <-chan int) {
 	config := nsq.NewConfig()
 	config.MaxInFlight = *maxInFlight
 	consumer, err := nsq.NewConsumer(topic, channel, config)
@@ -90,7 +90,7 @@ func subWorker(td time.Duration, tcpAddrs []string, topic string, channel string
 
 	// ready and wait to start
 	rdy.Done()
-	cond.Wait()
+	<-startCh
 
 	err = consumer.ConnectToNSQLookupds(tcpAddrs)
 	if err != nil {
@@ -116,13 +116,13 @@ func main() {
 	var wg sync.WaitGroup
 	var pubRdy sync.WaitGroup
 	var subRdy sync.WaitGroup
-	var pubCond sync.Cond
-	var subCond sync.Cond
-
+	pubStCh := make(chan int)
+	subStCh := make(chan int)
 	for i := 0; i < *numPubs; i++ {
 		wg.Add(1)
+		pubRdy.Add(1)
 		go func() {
-			pubWorker(*runfor, *nsqdAddr, *batchSize, batch, *topic, &pubRdy, &pubCond)
+			pubWorker(*runfor, *nsqdAddr, *batchSize, batch, *topic, &pubRdy, pubStCh)
 			wg.Done()
 		}()
 	}
@@ -130,16 +130,17 @@ func main() {
 
 	for j := 0; j < *numSubs; j++ {
 		wg.Add(1)
+		subRdy.Add(1)
 		go func() {
-			subWorker(*runfor, strings.Split(*lookupAddrs, " "), *topic, *channel, &subRdy, &subCond)
+			subWorker(*runfor, strings.Split(*lookupAddrs, " "), *topic, *channel, &subRdy, subStCh)
 			wg.Done()
 		}()
 	}
 	subRdy.Wait()
 
 	start := time.Now()
-	pubCond.Broadcast()
-	subCond.Broadcast()
+	close(pubStCh)
+	close(subStCh)
 	wg.Wait()
 	end := time.Now()
 	duration := end.Sub(start)
