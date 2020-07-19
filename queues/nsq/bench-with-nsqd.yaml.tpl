@@ -68,13 +68,13 @@ spec:
       volumes:
       - name: datadir
         persistentVolumeClaim:
-          claimName: datadir        
+          claimName: datadir-$ITEM    
 ---
 
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: datadir
+  name: datadir-$ITEM
 spec:
   accessModes:
     - "ReadWriteOnce"
