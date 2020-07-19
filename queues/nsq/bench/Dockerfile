@@ -1,8 +1,8 @@
 FROM golang
-ADD . /go/src/nsq/
+ADD . /go/src/nsq/bench
 
-WORKDIR /go/src/nsq
+WORKDIR /go/src/nsq/bench
 
 RUN go mod download
-RUN go install bench/
+RUN go install .
 

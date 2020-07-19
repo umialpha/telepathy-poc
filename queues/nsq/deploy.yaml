@@ -216,6 +216,8 @@ spec:
           - nsqlookupd-2.nsqlookupd:4160
           - -broadcast-address
           - $(HOSTNAME).nsqd
+          - -mem-queue-size
+          - "1000000"
         env:
         - name: HOSTNAME
           valueFrom:

@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: bench-$ITEM
+  name: bench-1
   labels:
     app: bench
 spec:
@@ -18,7 +18,7 @@ spec:
 	- nsqd-address
 	- nsq
 	- -topic
-	- sub_bench_$ITEM
+	- sub_bench_1
 	- -np
 	- "10"
 	- -ns
