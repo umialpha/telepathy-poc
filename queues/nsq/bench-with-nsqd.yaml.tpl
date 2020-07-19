@@ -17,7 +17,7 @@ spec:
         args: ["-runfor", "60s", "-nsqd-address", "nsqd:4150", "-lookup-addresses", "nsqlookupd-0.nsqlookupd:4161 nsqlookupd-1.nsqlookupd:4161 nsqlookupd-2.nsqlookupd:4161", "-topic", "sub_bench_$ITEM", "-np", "10", "-ns", "10", "-nc", "1", "-flight", "200", ]
         resources:
           requests:
-            cpu: "3"
+            cpu: "2"
             memory: "4Gi"
 
       - name: nsqd
@@ -25,7 +25,7 @@ spec:
         imagePullPolicy: Always
         resources:
           requests:
-            cpu: 30
+            cpu: 2
             memory: 1Gi
         ports:
         - containerPort: 4150
