@@ -61,7 +61,6 @@ spec:
   - port: 4151
     targetPort: 4151
     name: http
-  clusterIP: None
   selector:
     app: nsq
     component: nsqd
@@ -124,8 +123,8 @@ spec:
         imagePullPolicy: Always
         resources:
           requests:
-            cpu: 30m
-            memory: 64Mi
+            cpu: 3
+            memory: 1Gi
         ports:
         - containerPort: 4160
           name: tcp
@@ -184,8 +183,8 @@ spec:
         imagePullPolicy: Always
         resources:
           requests:
-            cpu: 30m
-            memory: 64Mi
+            cpu: 30
+            memory: 1Gi
         ports:
         - containerPort: 4150
           name: tcp
@@ -237,7 +236,7 @@ spec:
       storageClassName: managed-premium
       resources:
         requests:
-          storage: 5Gi
+          storage: 50Gi
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -261,7 +260,7 @@ spec:
         imagePullPolicy: Always
         resources:
           requests:
-            cpu: 30m
+            cpu: 1
             memory: 64Mi
         ports:
         - containerPort: 4170
