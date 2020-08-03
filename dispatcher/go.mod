@@ -3,6 +3,7 @@ module poc.dispatcher
 go 1.12
 
 require (
+	github.com/RussellLuo/timingwheel v0.0.0-20191211035242-0e67dbf0ae97
 	github.com/go-redis/redis/v8 v8.0.0-beta.7
 	github.com/golang/protobuf v1.4.2
 	github.com/nsqio/go-nsq v1.0.8

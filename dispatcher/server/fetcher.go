@@ -52,7 +52,7 @@ func (f *nsqFetcher) HandleMessage(m *nsq.Message) error {
 
 func NewFetcher(topic string, channel string, lookupds []string, config *nsq.Config) (Fetcher, error) {
 
-	c, err := nsq.NewConsumer(topic, channel, nsq.NewConfig())
+	c, err := nsq.NewConsumer(topic, channel, config)
 	if err != nil {
 		return nil, err
 	}

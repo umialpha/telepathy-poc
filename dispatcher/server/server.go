@@ -41,7 +41,9 @@ func (s *server) GetTask(ctx context.Context, in *pb.TaskRequest) (*pb.TaskRespo
 	// Else: return empty error.
 	fid := getFetcherID(in.Topic, in.Channel)
 	if s.fetchers.Exists(fid) == false {
-		f, err := NewFetcher(in.Topic, in.Channel, s.nsqlookups, nsq.NewConfig())
+		nsqConfig := nsq.NewConfig()
+		nsqConfig.MaxInFlight = 100000
+		f, err := NewFetcher(in.Topic, in.Channel, s.nsqlookups, nsqConfig)
 		if err != nil {
 			fmt.Println("NewFetcher error", err)
 			return nil, err
@@ -98,11 +100,11 @@ func (s *server) GetTask(ctx context.Context, in *pb.TaskRequest) (*pb.TaskRespo
 	}
 
 	timerItem := &TimerItem{
-		Tick:         tick,
-		Timeout:      timeout,
-		TickDuration: time.Duration(time.Second),
-		ExpiredTime:  time.Now().Add(10 * time.Second),
-		ID:           msgID,
+		Tick:           tick,
+		Timeout:        timeout,
+		TickDuration:   time.Duration(time.Second),
+		ExpireDuration: 10 * time.Second,
+		ID:             msgID,
 	}
 
 	s.msgTimer.Add(timerItem)
@@ -164,7 +166,7 @@ func NewServer(nsqlookups []string) pb.DispatcherServer {
 			Password: "", // no password set
 			DB:       0,  // use default DB
 		}),
-		msgTimer:   NewSimpleTimer(),
+		msgTimer:   NewTimingWheel(),
 		nsqlookups: nsqlookups,
 	}
 	return s

@@ -1,37 +1,33 @@
 package server
 
 import (
-	 "sync"
-	 "time"
-	 "context"
-
+	"context"
+	"sync"
+	"time"
 )
 
-
 type TimerItem struct {
-	Tick func() bool
-	Timeout func()
-	TickDuration time.Duration
-	ExpiredTime time.Time
-	ID string
+	Tick           func() bool
+	Timeout        func()
+	TickDuration   time.Duration
+	ExpireDuration time.Duration
+	StartTime      time.Time
+	ID             string
 }
 
-type Timer interface{
+type Timer interface {
 	Add(*TimerItem) bool
 	Delete(string)
 	Stop()
-	
 }
-
 
 type SimpleTimer struct {
 	Timer
-	mu sync.Mutex
-	items map[string]*TimerItem
+	mu      sync.Mutex
+	items   map[string]*TimerItem
 	cancels map[string]context.CancelFunc
-	stopCh chan int
-	wg sync.WaitGroup
-	
+	stopCh  chan int
+	wg      sync.WaitGroup
 }
 
 func (st *SimpleTimer) Add(it *TimerItem) bool {
@@ -41,7 +37,7 @@ func (st *SimpleTimer) Add(it *TimerItem) bool {
 		return false
 	}
 	st.items[it.ID] = it
-	go func(){
+	go func() {
 		st.wg.Add(1)
 		ctx, cancel := context.WithCancel(context.Background())
 		st.cancels[it.ID] = cancel
@@ -60,7 +56,7 @@ func (st *SimpleTimer) Delete(key string) {
 	cancel := st.cancels[key]
 	delete(st.cancels, key)
 	cancel()
-	
+
 }
 
 func (st *SimpleTimer) Stop() {
@@ -69,20 +65,20 @@ func (st *SimpleTimer) Stop() {
 
 }
 
-
 func (st *SimpleTimer) tickItem(ctx context.Context, it *TimerItem) {
 	defer st.wg.Done()
-	tick := time.Tick(it.TickDuration)
+	ticker := time.NewTicker(it.TickDuration)
+	defer ticker.Stop()
+	expired := time.After(it.ExpireDuration)
 	for {
-		expired := time.After(it.ExpiredTime.Sub(time.Now()))
 		select {
 		case <-ctx.Done():
 			return
 		case <-st.stopCh:
 			return
-		case <-tick:
+		case <-ticker.C:
 			needed := it.Tick()
-			if needed == false{
+			if needed == false {
 				st.Delete(it.ID)
 				return
 			}
@@ -95,25 +91,21 @@ func (st *SimpleTimer) tickItem(ctx context.Context, it *TimerItem) {
 	}
 }
 
-
 func NewSimpleTimer() Timer {
 	t := &SimpleTimer{
-		items: make(map[string]*TimerItem),
+		items:   make(map[string]*TimerItem),
 		cancels: make(map[string]context.CancelFunc),
-		stopCh: make(chan int),
+		stopCh:  make(chan int),
 	}
 	return t
 }
 
-
-
 type TimerMsg struct {
 	TimerItem
-	msg Message
-	caches []Cache
+	msg          Message
+	caches       []Cache
 	tickDuration time.Duration
 }
-
 
 // func (tm *TimerMsg) ID() string {
 // 	return tm.msg.ID().String()
@@ -128,7 +120,6 @@ type TimerMsg struct {
 // 	tm.msg.Touch()
 // 	return true
 // }
-
 
 // func (tm *TimerMsg) Timeout() {
 // 	tm.msg.Requeue(-1)

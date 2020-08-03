@@ -40,7 +40,7 @@ func workflow() {
 		resp, err := client.GetTask(ctx, &pb.TaskRequest{Topic: *topic, Channel: *channel})
 		if err != nil {
 			fmt.Println("GetTask failed, error: ", err)
-			break
+
 			//time.Sleep(time.Second)
 			goto RetryGet
 		}
@@ -57,7 +57,7 @@ func workflow() {
 			Result:  pb.TaskResult_FIN, MessageID: resp.MessageID})
 		if err != nil {
 			fmt.Println("FinTask failed, error: ", err)
-			// time.Sleep(time.Second)
+			//time.Sleep(time.Millisecond)
 			goto RetryFinTask
 		}
 		fin++
