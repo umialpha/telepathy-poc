@@ -4,9 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"time"
 
-	"github.com/go-redis/redis/v8"
+	"github.com/go-redis/redis"
 	"github.com/nsqio/go-nsq"
 	pb "poc.dispatcher/protos"
 )
@@ -32,23 +33,27 @@ func getFetcherID(topic string, channel string) string {
 }
 
 func (s *server) GetTask(ctx context.Context, in *pb.TaskRequest) (*pb.TaskResponse, error) {
-	start := time.Now()
-	defer func() {
-		fmt.Println("GetTask Cost", time.Now().Sub(start))
-	}()
+	// start := time.Now()
+	// defer func() {
+	// 	fmt.Println("GetTask Cost", time.Now().Sub(start))
+	// }()
+
 	// Fetch msg from Fetcher
 	// If exists, put it into `working_msg` cache.
 	// Else: return empty error.
 	fid := getFetcherID(in.Topic, in.Channel)
-	if s.fetchers.Exists(fid) == false {
-		nsqConfig := nsq.NewConfig()
-		nsqConfig.MaxInFlight = 100000
-		f, err := NewFetcher(in.Topic, in.Channel, s.nsqlookups, nsqConfig)
-		if err != nil {
-			fmt.Println("NewFetcher error", err)
-			return nil, err
-		}
-		s.fetchers.Set(fid, f, 0)
+	nsqConfig := nsq.NewConfig()
+	nsqConfig.MaxInFlight = 100000
+	nsqConfig.MsgTimeout = 1 * time.Minute
+	nsqConfig.MaxAttempts = 10
+	f, err := NewFetcher(1, 100000, in.Topic, in.Channel, s.nsqlookups, nsqConfig)
+	if err != nil {
+		fmt.Println("NewFetcher error", err)
+		return nil, err
+	}
+	err = s.fetchers.SetNX(fid, f, 0)
+	if err == nil {
+		f.Start()
 	}
 
 	fetcher, err := s.fetchers.Get(fid)
@@ -115,10 +120,10 @@ func (s *server) GetTask(ctx context.Context, in *pb.TaskRequest) (*pb.TaskRespo
 }
 
 func (s *server) FinTask(ctx context.Context, in *pb.FinTaskRequest) (*pb.FinTaskResponse, error) {
-	start := time.Now()
-	defer func() {
-		fmt.Println("FinTask Cost", time.Now().Sub(start))
-	}()
+	// start := time.Now()
+	// defer func() {
+	// 	fmt.Println("FinTask Cost", time.Now().Sub(start))
+	// }()
 	// TODO: transaction between caches
 	msgID := string(in.MessageID)
 	msg := NewMessage(msgID, in.Payload, -1)
@@ -154,20 +159,32 @@ func (s *server) FinTask(ctx context.Context, in *pb.FinTaskRequest) (*pb.FinTas
 }
 
 func NewServer(nsqlookups []string) pb.DispatcherServer {
+
+	redisAddr := os.Getenv("REDIS_ADDR")
+	if redisAddr == "" {
+		redisAddr = "localhost:6379"
+
+	}
+	redisPass := os.Getenv("REDIS_PASSWORD")
+	fmt.Println("redisAddr", redisAddr, redisPass)
+
+	opt := &redis.ClusterOptions{
+		Addrs:    []string{redisAddr},
+		Password: redisPass, // no password set
+	}
+
+	// opt := &redis.Options{
+	// 	Addr:     redisAddr,
+	// 	Password: redisPass,
+	// 	DB:       0,
+	// }
+
 	s := &server{
-		fetchers: NewInMemoryCache(),
-		finishedMsgs: NewRedisCache("finish", &redis.Options{
-			Addr:     "localhost:6379",
-			Password: "", // no password set
-			DB:       0,  // use default DB
-		}),
-		failedMsgs: NewRedisCache("failed", &redis.Options{
-			Addr:     "localhost:6379",
-			Password: "", // no password set
-			DB:       0,  // use default DB
-		}),
-		msgTimer:   NewTimingWheel(),
-		nsqlookups: nsqlookups,
+		fetchers:     NewInMemoryCache(),
+		finishedMsgs: NewRedisCache("finish", opt),
+		failedMsgs:   NewRedisCache("failed", opt),
+		msgTimer:     NewTimingWheel(),
+		nsqlookups:   nsqlookups,
 	}
 	return s
 

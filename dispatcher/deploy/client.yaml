@@ -1,0 +1,29 @@
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dispatcher-client
+  labels:
+    app: dispatcher-client
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: dispatcher-client
+  template:
+    metadata:
+      labels:
+        app: dispatcher-client
+    spec:
+      containers:
+      - name: poc
+        image: r4aks.azurecr.io/dispatcher.poc:v1.9
+        command: ["/go/bin/client"]
+        args: ["-s", "dispatcher:50051", "-nsqd", "nsqd:4150", "-runfor", "10s", "-r", "10", "-c", "10"]
+        ports:
+        resources:
+          requests:
+            cpu: "3" 
+            memory: "8Gi"        
+
+        

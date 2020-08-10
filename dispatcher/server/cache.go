@@ -7,7 +7,8 @@ import (
 )
 
 var (
-	KeyNotFoundErr = errors.New("KeyNotFoundErr")
+	KeyNotFoundErr  = errors.New("KeyNotFoundErr")
+	KeyAlreadyExist = errors.New("KeyAlreadyExist")
 )
 
 type DefaultSetFunc = func() (interface{}, error)
@@ -15,8 +16,9 @@ type DefaultSetFunc = func() (interface{}, error)
 type Cache interface {
 	Set(string, interface{}, time.Duration) error
 	Get(string) (interface{}, error)
-	Exists(string) bool
 	Delete(string) error
+	SetNX(string, interface{}, time.Duration) error
+	Exists(string) bool
 }
 
 type memoryCache struct {
@@ -42,8 +44,21 @@ func (mc *memoryCache) Get(key string) (interface{}, error) {
 }
 
 func (mc *memoryCache) Exists(key string) bool {
-	val, _ := mc.Get(key)
-	return val != nil
+	mc.Lock()
+	defer mc.Unlock()
+	_, ok := mc.values[key]
+	return ok
+}
+
+func (mc *memoryCache) SetNX(key string, val interface{}, expireDuration time.Duration) error {
+	mc.Lock()
+	defer mc.Unlock()
+	if _, ok := mc.values[key]; ok {
+		return KeyAlreadyExist
+	} else {
+		mc.values[key] = val
+		return nil
+	}
 }
 
 func (mc *memoryCache) Delete(key string) error {

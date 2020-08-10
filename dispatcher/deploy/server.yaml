@@ -1,0 +1,50 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: dispatcher
+  labels:
+    app: dispatcher
+spec:
+  ports:
+  - port: 50051
+    targetPort: 50051
+  selector:
+    app: dispatcher
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dispatcher
+  labels:
+    app: dispatcher
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dispatcher
+  template:
+    metadata:
+      labels:
+        app: dispatcher
+    spec:
+      containers:
+      - name: poc
+        image: r4aks.azurecr.io/dispatcher.poc.inmemory:v1.0
+        command: ["/go/bin/cmd"]
+        args: ["-lookupd", "nsqlookupd-0.nsqlookupd:4161 nsqlookupd-1.nsqlookupd:4161 nsqlookupd-2.nsqlookupd:4161", "-p", "50051"]
+        ports:
+        - containerPort: 50051
+        resources:
+          requests:
+            cpu: "14" 
+            memory: "8Gi" 
+        env:
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: redis
+              key: password
+        - name: REDIS_ADDR
+          value: "telepathy.redis.cache.windows.net:6379"
+          

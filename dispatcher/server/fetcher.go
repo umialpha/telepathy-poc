@@ -2,13 +2,13 @@ package server
 
 import (
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/nsqio/go-nsq"
 )
 
 type Fetcher interface {
+	Start()
 	Fetch() (Message, error)
 }
 
@@ -22,10 +22,11 @@ func getMessageID(topic string, channel string, msgID nsq.MessageID) string {
 
 type nsqFetcher struct {
 	Fetcher
-	consumer       *nsq.Consumer
+	consumers      []*nsq.Consumer
 	msgCh          chan Message
 	topic          string
 	channel        string
+	lookupds       []string
 	consumerConfig *nsq.Config
 }
 
@@ -39,7 +40,7 @@ func (f *nsqFetcher) Fetch() (Message, error) {
 }
 
 func (f *nsqFetcher) HandleMessage(m *nsq.Message) error {
-	fmt.Println("handle message")
+	//fmt.Println("handle message")
 	if len(m.Body) == 0 {
 		// Returning nil will automatically send a FIN command to NSQ to mark the message as processed.
 		return nil
@@ -50,20 +51,28 @@ func (f *nsqFetcher) HandleMessage(m *nsq.Message) error {
 	return nil
 }
 
-func NewFetcher(topic string, channel string, lookupds []string, config *nsq.Config) (Fetcher, error) {
-
-	c, err := nsq.NewConsumer(topic, channel, config)
-	if err != nil {
-		return nil, err
+func (f *nsqFetcher) Start() {
+	for _, c := range f.consumers {
+		c.ConnectToNSQLookupds(f.lookupds)
 	}
+}
+
+func NewFetcher(parallel int, bufferCnt int, topic string, channel string, lookupds []string, config *nsq.Config) (Fetcher, error) {
+
 	fetcher := &nsqFetcher{
-		msgCh:   make(chan Message, 100000),
-		topic:   topic,
-		channel: channel,
+		msgCh:    make(chan Message, bufferCnt),
+		topic:    topic,
+		channel:  channel,
+		lookupds: lookupds,
 	}
-	c.AddHandler(fetcher)
-	c.ConnectToNSQLookupds(lookupds)
-	fetcher.consumer = c
+	for i := 0; i < parallel; i++ {
+		c, err := nsq.NewConsumer(topic, channel, config)
+		if err != nil {
+			return nil, err
 
+		}
+		c.AddHandler(fetcher)
+		fetcher.consumers = append(fetcher.consumers, c)
+	}
 	return fetcher, nil
 }

@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/RussellLuo/timingwheel"
-	_ "github.com/RussellLuo/timingwheel"
 )
 
 type twTimer struct {
