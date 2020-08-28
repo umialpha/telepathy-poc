@@ -11,34 +11,34 @@ type twTimer struct {
 	Timer
 	tw     *timingwheel.TimingWheel
 	mu     sync.Mutex
-	items  map[string]*TimerItem
+	items  map[string]TimerItem
 	timers map[string]*timingwheel.Timer
 }
 
-func (t *twTimer) tickItem(it *TimerItem) {
+func (t *twTimer) tickItem(it TimerItem) {
 	needed := it.Tick()
-	if time.Now().After(it.StartTime.Add(it.ExpireDuration)) {
+	if time.Now().After(it.StartTime().Add(it.ExpireDuration())) {
 		it.Timeout()
 		return
 	}
 
 	if needed {
-		t.tw.AfterFunc(it.TickDuration, func() {
+		t.tw.AfterFunc(it.TickDuration(), func() {
 			t.tickItem(it)
 		})
 	}
 }
 
-func (t *twTimer) Add(it *TimerItem) bool {
+func (t *twTimer) Add(it TimerItem) bool {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	if _, ok := t.items[it.ID]; ok {
+	if _, ok := t.items[it.ID()]; ok {
 		return false
 	}
-	t.items[it.ID] = it
-	it.StartTime = time.Now()
-	timer := t.tw.AfterFunc(it.TickDuration, func() { t.tickItem(it) })
-	t.timers[it.ID] = timer
+	t.items[it.ID()] = it
+	it.SetStartTime(time.Now())
+	timer := t.tw.AfterFunc(it.TickDuration(), func() { t.tickItem(it) })
+	t.timers[it.ID()] = timer
 	return true
 }
 
@@ -60,7 +60,7 @@ func (t *twTimer) Stop() {
 
 func NewTimingWheel() Timer {
 	t := &twTimer{
-		items:  make(map[string]*TimerItem),
+		items:  make(map[string]TimerItem),
 		timers: make(map[string]*timingwheel.Timer),
 		tw:     timingwheel.NewTimingWheel(100*time.Millisecond, 100),
 	}

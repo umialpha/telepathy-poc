@@ -2,189 +2,104 @@ package server
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"os"
-	"time"
+	"sync"
 
-	"github.com/go-redis/redis"
-	"github.com/nsqio/go-nsq"
+	"github.com/golang/protobuf/ptypes/empty"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	pb "poc.dispatcher/protos"
 )
 
 var (
 
-	// errors
-	TaskAlreadyInWorkingState = errors.New("TaskAlreadyInWorkingState")
-	TaskAlreadyFinished       = errors.New("TaskAlreadyFinished")
+// Default Redis key expire time
+
 )
 
 type server struct {
 	pb.DispatcherServer
-	fetchers     Cache
-	finishedMsgs Cache
-	failedMsgs   Cache
-	msgTimer     Timer
-	nsqlookups   []string
+	fetchers   map[string]Fetcher
+	fMtx       sync.RWMutex
+	collectors map[string]*taskResultCollector
+	cMtx       sync.RWMutex
 }
 
-func getFetcherID(topic string, channel string) string {
-	return topic + "." + channel
-}
+func (s *server) GetWrappedTask(ctx context.Context, in *pb.GetTaskRequest) (*pb.WrappedTask, error) {
 
-func (s *server) GetTask(ctx context.Context, in *pb.TaskRequest) (*pb.TaskResponse, error) {
-	// start := time.Now()
-	// defer func() {
-	// 	fmt.Println("GetTask Cost", time.Now().Sub(start))
-	// }()
+	// create fetcher if not exists
+	sid := in.SessionId
+	var fetcher Fetcher
+	var err error
+	s.fMtx.Lock()
+	if _, ok := s.fetchers[sid]; !ok {
+		fetcherConfig := NewNsqFetcherConfig()
+		fetcher, err = NewNsqFetcher(sid, fetcherConfig)
+		if err != nil {
+			fmt.Println("NewNsqFetcher error", err)
+			s.fMtx.Unlock()
+			return nil, status.Errorf(codes.Internal, err.Error())
+		}
 
-	// Fetch msg from Fetcher
-	// If exists, put it into `working_msg` cache.
-	// Else: return empty error.
-	fid := getFetcherID(in.Topic, in.Channel)
-	nsqConfig := nsq.NewConfig()
-	nsqConfig.MaxInFlight = 100000
-	nsqConfig.MsgTimeout = 1 * time.Minute
-	nsqConfig.MaxAttempts = 10
-	f, err := NewFetcher(1, 100000, in.Topic, in.Channel, s.nsqlookups, nsqConfig)
-	if err != nil {
-		fmt.Println("NewFetcher error", err)
-		return nil, err
+		s.fetchers[sid] = fetcher
+		err = fetcher.Start()
+		if err != nil {
+			s.fMtx.Unlock()
+			return nil, status.Errorf(codes.Internal, err.Error())
+		}
 	}
-	err = s.fetchers.SetNX(fid, f, 0)
-	if err == nil {
-		f.Start()
-	}
+	s.fMtx.Unlock()
 
-	fetcher, err := s.fetchers.Get(fid)
-	if err != nil {
-		fmt.Println("Get Fetcher failed", err)
-		return nil, err
-	}
 	// fetch the msg
 	msg, err := fetcher.(Fetcher).Fetch()
 	if err != nil {
 		fmt.Println("Fetch msg Failed, reason: ", err)
-		return nil, err
-	}
-	msgID := msg.GetID().String()
-	// The msg is in success state
-	if s.finishedMsgs.Exists(msgID) {
-		fmt.Println("message: " + msg.GetID() + " is finished")
-		// confirm the message directly
-		msg.Finish()
-		return nil, TaskAlreadyFinished
-	}
-
-	// The msg is in failed state, retry
-	if s.failedMsgs.Exists(msgID) {
-		fmt.Println("message: " + msg.GetID() + "is failed, let us retry")
-		s.failedMsgs.Delete(string(msg.GetID()))
-	}
-	// refresh msg directly
-	msg.Touch()
-
-	// AddMsg to Timer
-
-	tick := func() bool {
-		if s.finishedMsgs.Exists(msgID) {
-			msg.Finish()
-			fmt.Println("Tick Message, Found Finished", msgID)
-			return false
+		if err == NoMessageError {
+			return &pb.WrappedTask{SessionState: pb.SessionStateEnum_TEMP_NO_TASK}, nil
+		} else {
+			return nil, status.Errorf(codes.Internal, err.Error())
 		}
-		if s.failedMsgs.Exists(msgID) {
-			msg.Requeue(-1)
-			fmt.Println("Tick Message, Found Failed", msgID)
-			return false
-		}
-		msg.Touch()
-		return true
-	}
-	timeout := func() {
-		msg.Requeue(-1)
 	}
 
-	timerItem := &TimerItem{
-		Tick:           tick,
-		Timeout:        timeout,
-		TickDuration:   time.Duration(time.Second),
-		ExpireDuration: 10 * time.Second,
-		ID:             msgID,
+	resp := &pb.WrappedTask{
+		SessionId:           in.SessionId,
+		TaskId:              msg.GetID().String(),
+		SerializedInnerTask: msg.GetPayload(),
+		SessionState:        pb.SessionStateEnum_RUNNING,
 	}
 
-	s.msgTimer.Add(timerItem)
-
-	fmt.Println("message: " + msg.GetID() + " start working")
-	resp := &pb.TaskResponse{Payload: msg.GetPayload(), MessageID: []byte(msg.GetID())}
 	return resp, nil
 }
-
-func (s *server) FinTask(ctx context.Context, in *pb.FinTaskRequest) (*pb.FinTaskResponse, error) {
-	// start := time.Now()
-	// defer func() {
-	// 	fmt.Println("FinTask Cost", time.Now().Sub(start))
-	// }()
-	// TODO: transaction between caches
-	msgID := string(in.MessageID)
-	msg := NewMessage(msgID, in.Payload, -1)
-	switch in.Result {
-	// If the result is success, take a radical approach
-	case pb.TaskResult_FIN:
-		err := s.finishedMsgs.Set(msgID, msg, -1)
+func (s *server) SendResult(ctx context.Context, in *pb.SendResultRequest) (*empty.Empty, error) {
+	sid := in.SessionId
+	var collector *taskResultCollector
+	var err error
+	s.cMtx.Lock()
+	if collector, ok := s.collectors[sid]; !ok {
+		collector = NewTaskResultCollector(in.SessionId)
+		s.collectors[sid] = collector
+		err = collector.Start()
 		if err != nil {
-			fmt.Println("finishedMsgs.Set error: ", err)
-			return nil, err
+			s.cMtx.Unlock()
+			fmt.Println("Error Start collector", err)
+			return nil, status.Errorf(codes.Internal, err.Error())
 		}
-		err = s.failedMsgs.Delete(msgID)
-		if err != nil {
-			fmt.Println("failedMsgs.Set Delete: ", err)
-			return nil, err
-		}
-		fmt.Println("Finish Task, ID: ", msgID)
-		break
-	case pb.TaskResult_FAIL:
-		fmt.Println("Failed Task, ID: ", msgID)
-		// Set the msg failed only if it is not in finished state
-		if s.finishedMsgs.Exists(msgID) == false {
-			err := s.failedMsgs.Set(msgID, msg, -1)
-			if err != nil {
-				fmt.Println("failedMsgs.Set error: ", err)
-				return nil, err
-			}
-		}
-		break
 	}
-	return &pb.FinTaskResponse{}, nil
+	s.fMtx.Unlock()
+	err = collector.Collect(in)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, err.Error())
+	}
+	return &empty.Empty{}, nil
 
 }
 
 func NewServer(nsqlookups []string) pb.DispatcherServer {
 
-	redisAddr := os.Getenv("REDIS_ADDR")
-	if redisAddr == "" {
-		redisAddr = "localhost:6379"
-
-	}
-	redisPass := os.Getenv("REDIS_PASSWORD")
-	fmt.Println("redisAddr", redisAddr, redisPass)
-
-	opt := &redis.ClusterOptions{
-		Addrs:    []string{redisAddr},
-		Password: redisPass, // no password set
-	}
-
-	// opt := &redis.Options{
-	// 	Addr:     redisAddr,
-	// 	Password: redisPass,
-	// 	DB:       0,
-	// }
-
 	s := &server{
-		fetchers:     NewInMemoryCache(),
-		finishedMsgs: NewRedisCache("finish", opt),
-		failedMsgs:   NewRedisCache("failed", opt),
-		msgTimer:     NewTimingWheel(),
-		nsqlookups:   nsqlookups,
+		fetchers:   make(map[string]Fetcher),
+		collectors: make(map[string]*taskResultCollector),
 	}
 	return s
 
