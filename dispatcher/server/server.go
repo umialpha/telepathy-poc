@@ -26,31 +26,36 @@ type server struct {
 	cMtx       sync.RWMutex
 }
 
-func (s *server) GetWrappedTask(ctx context.Context, in *pb.GetTaskRequest) (*pb.WrappedTask, error) {
-
-	// create fetcher if not exists
-	sid := in.SessionId
+func (s *server) createFetcherIfNotExist(sid string) (Fetcher, error) {
 	var fetcher Fetcher
+	var ok bool
 	var err error
 	s.fMtx.Lock()
-	if _, ok := s.fetchers[sid]; !ok {
+	defer s.fMtx.Unlock()
+	if _, ok = s.fetchers[sid]; !ok {
 		fetcherConfig := NewNsqFetcherConfig()
 		fetcher, err = NewNsqFetcher(sid, fetcherConfig)
 		if err != nil {
 			fmt.Println("NewNsqFetcher error", err)
-			s.fMtx.Unlock()
-			return nil, status.Errorf(codes.Internal, err.Error())
+			return nil, err
 		}
 
 		s.fetchers[sid] = fetcher
 		err = fetcher.Start()
 		if err != nil {
-			s.fMtx.Unlock()
-			return nil, status.Errorf(codes.Internal, err.Error())
+			return nil, err
 		}
 	}
-	s.fMtx.Unlock()
+	return s.fetchers[sid], nil
+}
 
+func (s *server) GetWrappedTask(ctx context.Context, in *pb.GetTaskRequest) (*pb.WrappedTask, error) {
+
+	// create fetcher if not exists
+	fetcher, err := s.createFetcherIfNotExist(in.SessionId)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, err.Error())
+	}
 	// fetch the msg
 	msg, err := fetcher.(Fetcher).Fetch()
 	if err != nil {
@@ -71,22 +76,29 @@ func (s *server) GetWrappedTask(ctx context.Context, in *pb.GetTaskRequest) (*pb
 
 	return resp, nil
 }
-func (s *server) SendResult(ctx context.Context, in *pb.SendResultRequest) (*empty.Empty, error) {
-	sid := in.SessionId
-	var collector *taskResultCollector
+
+func (s *server) createCollectorIfNotExists(sid string) (*taskResultCollector, error) {
 	var err error
 	s.cMtx.Lock()
-	if collector, ok := s.collectors[sid]; !ok {
-		collector = NewTaskResultCollector(in.SessionId)
+	defer s.cMtx.Unlock()
+	if _, ok := s.collectors[sid]; !ok {
+		collector := NewTaskResultCollector(sid)
 		s.collectors[sid] = collector
 		err = collector.Start()
 		if err != nil {
-			s.cMtx.Unlock()
 			fmt.Println("Error Start collector", err)
-			return nil, status.Errorf(codes.Internal, err.Error())
+			return nil, err
 		}
 	}
-	s.fMtx.Unlock()
+	return s.collectors[sid], nil
+}
+
+func (s *server) SendResult(ctx context.Context, in *pb.SendResultRequest) (*empty.Empty, error) {
+	sid := in.SessionId
+	collector, err := s.createCollectorIfNotExists(sid)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, err.Error())
+	}
 	err = collector.Collect(in)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, err.Error())
@@ -95,7 +107,7 @@ func (s *server) SendResult(ctx context.Context, in *pb.SendResultRequest) (*emp
 
 }
 
-func NewServer(nsqlookups []string) pb.DispatcherServer {
+func NewServer() pb.DispatcherServer {
 
 	s := &server{
 		fetchers:   make(map[string]Fetcher),

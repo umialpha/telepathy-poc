@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"net"
-	"strings"
 
 	"google.golang.org/grpc"
 
@@ -20,7 +19,7 @@ var (
 func main() {
 	flag.Parse()
 	grpcServer := grpc.NewServer()
-	pb.RegisterDispatcherServer(grpcServer, server.NewServer(strings.Split(*lookupds, " ")))
+	pb.RegisterDispatcherServer(grpcServer, server.NewServer())
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%s", *port))
 	if err != nil {
 		fmt.Println(err)

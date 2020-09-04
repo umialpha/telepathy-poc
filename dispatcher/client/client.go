@@ -8,25 +8,27 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/go-redis/redis/v8"
 	"github.com/nsqio/go-nsq"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/proto"
 	pb "poc.dispatcher/protos"
+	"poc.dispatcher/server"
 )
 
 var (
-	addr       = flag.String("s", "localhost:50051", "server address, `<addr>:<port>`")
-	topic      = flag.String("t", "disp-topic", "working topic")
-	channel    = flag.String("ch", "disp-channel", "working channel")
-	nsqdAddr   = flag.String("nsqd", "localhost:4150", "lookupd address")
-	duration   = flag.Duration("runfor", 30*time.Second, "duration of time to run, e.g `1h1m10s`, `10ms`")
-	conn       = flag.Int("c", 10, "concurrent connections")
-	numRPC     = flag.Int("r", 10, "The number of concurrent RPCs on each connection.")
-	produceMsg = flag.Bool("p", false, "produceMsg mode, default false")
-
-	wg     sync.WaitGroup
-	cnts   = int32(0)
-	fins   = int32(0)
-	nomsgs = int32(0)
+	addr      = flag.String("s", "localhost:50051", "server address, `<addr>:<port>`")
+	sessionId = flag.String("sid", "session-1", "working topic")
+	nsqdAddr  = flag.String("nsqd", "localhost:4150", "lookupd address")
+	duration  = flag.Duration("runfor", 30*time.Second, "duration of time to run, e.g `1h1m10s`, `10ms`")
+	conn      = flag.Int("c", 5, "concurrent connections")
+	numRPC    = flag.Int("r", 5, "The number of concurrent RPCs on each connection.")
+	prepare   = flag.Bool("p", false, "produceMsg mode, default false")
+	msgCount  = flag.Int("m", 1000000, "message counts")
+	wg        sync.WaitGroup
+	cnts      = int32(0)
+	fins      = int32(0)
+	nomsgs    = int32(0)
 )
 
 func runWithConn() {
@@ -57,7 +59,7 @@ func runWithConn() {
 				// ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 				// defer cancel()
 				t := time.Now()
-				resp, err := client.GetTask(context.Background(), &pb.TaskRequest{Topic: *topic, Channel: *channel})
+				resp, err := client.GetWrappedTask(context.Background(), &pb.GetTaskRequest{SessionId: *sessionId})
 				fmt.Println("GetTask cost", time.Since(t))
 				if err != nil {
 					fmt.Println("GetTask failed, error: ", err)
@@ -72,10 +74,12 @@ func runWithConn() {
 				// defer cancel1()
 				// time.Sleep(1 * time.Second)
 				t = time.Now()
-				_, err = client.FinTask(context.Background(), &pb.FinTaskRequest{
-					Topic:   *topic,
-					Channel: *channel,
-					Result:  pb.TaskResult_FIN, MessageID: resp.MessageID})
+				_, err = client.SendResult(context.Background(), &pb.SendResultRequest{
+					SessionId:             *sessionId,
+					TaskId:                resp.TaskId,
+					TaskState:             pb.TaskStateEnum_REQUEUE,
+					SerializedInnerResult: []byte{},
+				})
 				fmt.Println("FinTask cost", time.Since(t))
 				if err != nil {
 					fmt.Println("FinTask failed, error: ", err)
@@ -104,35 +108,78 @@ func workflow() {
 	<-forever
 }
 
-func produceWork() {
+func produce(topicList []string) {
 	config := nsq.NewConfig()
 	producer, err := nsq.NewProducer(*nsqdAddr, config)
 	if err != nil {
 		panic(err.Error())
 	}
 	// ready and wait to start
-	msg := make([]byte, 100)
-	var msgCount int64
-	endTime := time.Now().Add(*duration)
-	for {
-		err := producer.Publish(*topic, msg)
+	// msg := make([]byte, 100)
+
+	var cnt int
+	startTime := time.Now()
+	for cnt < *msgCount {
+		hello := &pb.HelloRequest{
+			Name: fmt.Sprintf("Name-%d", cnt),
+		}
+		msg, _ := proto.Marshal(hello)
+		innerTask := &pb.InnerTask{
+			SessionId:   *sessionId,
+			ClientId:    "test-client",
+			MessageId:   fmt.Sprintf("Msg-%d", cnt),
+			ServiceName: "helloworld.Greeter",
+			MethodName:  "SayHello",
+			MethodType:  pb.MethodEnum_UNARY,
+			Msg:         msg,
+		}
+		innerBytes, _ := proto.Marshal(innerTask)
+
+		err := producer.Publish(topicList[cnt%len(topicList)], innerBytes)
 		if err != nil {
 			panic(err.Error())
 		}
-		msgCount++
-		if time.Now().After(endTime) {
-			break
-		}
+		cnt++
+
 	}
-	fmt.Println("Produce Msg Count", msgCount)
+	fmt.Println("Produce Msg Count %s, qps %s", cnt, float64(cnt)/time.Since(startTime).Seconds())
 	forever := make(chan int)
 	<-forever
 }
 
+func prepareWork() {
+	// set redis queue
+	rdb := redis.NewClusterClient(&redis.ClusterOptions{
+		Addrs:    server.EnvGetRedisAddrs(),
+		Password: server.EnvGetRedisPass(), // no password set
+	})
+	key := server.SessionBatchKey(*sessionId)
+	batchIds := []string{"client"}
+	ctx := context.Background()
+	cmd := rdb.SAdd(ctx, key, batchIds)
+	_, err := cmd.Result()
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Println("Prepare Session done")
+
+	// publish to queue
+	var topics []string
+	for _, bid := range batchIds {
+		topics = append(topics, server.GetTopic(*sessionId, bid))
+	}
+	// produce(topics)
+}
+
+func consume() {
+
+}
+
 func main() {
 	flag.Parse()
-	if *produceMsg {
-		produceWork()
+	if *prepare {
+		prepareWork()
 	} else {
 		workflow()
 	}

@@ -19,13 +19,19 @@ func (t *twTimer) tickItem(it TimerItem) {
 	needed := it.Tick()
 	if time.Now().After(it.StartTime().Add(it.ExpireDuration())) {
 		it.Timeout()
+		t.Delete(it.ID())
 		return
 	}
 
 	if needed {
-		t.tw.AfterFunc(it.TickDuration(), func() {
+		t.mu.Lock()
+		t.timers[it.ID()] = t.tw.AfterFunc(it.TickDuration(), func() {
 			t.tickItem(it)
 		})
+		t.mu.Unlock()
+
+	} else {
+		t.Delete(it.ID())
 	}
 }
 
@@ -48,14 +54,22 @@ func (t *twTimer) Delete(key string) {
 	if _, ok := t.items[key]; !ok {
 		return
 	}
-	delete(t.items, key)
+
 	timer := t.timers[key]
 	timer.Stop()
+	delete(t.items, key)
 	delete(t.timers, key)
+
 }
 
 func (t *twTimer) Stop() {
 	t.tw.Stop()
+}
+
+func (st *twTimer) Size() int {
+	st.mu.Lock()
+	defer st.mu.Unlock()
+	return len(st.timers)
 }
 
 func NewTimingWheel() Timer {

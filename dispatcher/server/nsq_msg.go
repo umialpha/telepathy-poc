@@ -40,7 +40,7 @@ func (m *nsqMsg) Finish() {
 }
 
 func (m *nsqMsg) Requeue(delay time.Duration) {
-	m.nsq.Requeue(delay)
+	m.nsq.RequeueWithoutBackoff(delay)
 }
 
 func NewNsqMessage(topic string, channel string, m *nsq.Message) Message {
