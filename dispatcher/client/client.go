@@ -18,7 +18,7 @@ import (
 
 var (
 	addr      = flag.String("s", "localhost:50051", "server address, `<addr>:<port>`")
-	sessionId = flag.String("sid", "session-1", "working topic")
+	sessionId = flag.String("sid", "ttt-session-5", "working topic")
 	nsqdAddr  = flag.String("nsqd", "localhost:4150", "lookupd address")
 	duration  = flag.Duration("runfor", 30*time.Second, "duration of time to run, e.g `1h1m10s`, `10ms`")
 	conn      = flag.Int("c", 5, "concurrent connections")
@@ -77,7 +77,7 @@ func runWithConn() {
 				_, err = client.SendResult(context.Background(), &pb.SendResultRequest{
 					SessionId:             *sessionId,
 					TaskId:                resp.TaskId,
-					TaskState:             pb.TaskStateEnum_REQUEUE,
+					TaskState:             pb.TaskStateEnum_FINISHED,
 					SerializedInnerResult: []byte{},
 				})
 				fmt.Println("FinTask cost", time.Since(t))
@@ -169,7 +169,7 @@ func prepareWork() {
 	for _, bid := range batchIds {
 		topics = append(topics, server.GetTopic(*sessionId, bid))
 	}
-	// produce(topics)
+	produce(topics)
 }
 
 func consume() {

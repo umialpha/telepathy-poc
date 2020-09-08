@@ -31,7 +31,7 @@ func EnvGetNsqdAddr() string {
 func EnvGetRedisAddrs() []string {
 	redisAddr := os.Getenv(ENV_REDIS_ADDR)
 	if redisAddr == "" {
-		redisAddr = "redis-tmp.redis.cache.windows.net:6379"
+		redisAddr = "redis-tmp.redis.cache.windows.net:6379" //"localhost:7000 localhost:7001 localhost:7002"
 
 	}
 	return strings.Split(redisAddr, " ")
@@ -40,7 +40,7 @@ func EnvGetRedisAddrs() []string {
 func EnvGetRedisPass() string {
 	password := os.Getenv(ENV_REDIS_PASSWORD)
 	if password == "" {
-		password = "wQGnvnmyAtm49nmuOMz2nNoyHv0sdvCumVgTkE4qB6Q="
+		password = "wQGnvnmyAtm49nmuOMz2nNoyHv0sdvCumVgTkE4qB6Q=" // wQGnvnmyAtm49nmuOMz2nNoyHv0sdvCumVgTkE4qB6Q=
 	}
 	return password
 }

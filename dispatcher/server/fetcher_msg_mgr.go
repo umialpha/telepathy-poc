@@ -90,15 +90,15 @@ func (t *msgMgr) GetState(m Message) (string, bool) {
 
 }
 
-func (t *msgMgr) loadKeyValues(lst []Message) {
+func (t *msgMgr) loadKeyValues(msgs map[string]Message) {
 	t.mtx.Lock()
-	fmt.Println("loadKeyValues", len(lst), t.timer.Size())
+	fmt.Println("loadKeyValues", len(msgs), t.timer.Size())
 	t.mtx.Unlock()
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	pipeline := t.rdb.Pipeline()
 	cmds := map[string]*redis.StringCmd{}
-	for _, m := range lst {
+	for _, m := range msgs {
 		id := m.GetID().String()
 		cmds[id] = pipeline.Get(ctx, SessionTaskKey(t.sessionId, id))
 	}
@@ -107,6 +107,9 @@ func (t *msgMgr) loadKeyValues(lst []Message) {
 	var requeueList []string
 	for k, v := range cmds {
 		val, err := v.Result()
+		if _, ok := t.msgs[k]; !ok {
+			continue
+		}
 		if err != nil {
 			t.msgs[k].Touch()
 			continue
@@ -115,11 +118,13 @@ func (t *msgMgr) loadKeyValues(lst []Message) {
 		if val == MSG_STATE_SUCCESS {
 			t.msgs[k].Finish()
 			t.states[k] = MSG_STATE_SUCCESS
+
 		} else if val == "requeue" {
 			fmt.Println("Requeue", k)
 			t.msgs[k].Requeue(0)
 			requeueList = append(requeueList, k)
 			delete(t.msgs, k)
+
 		}
 	}
 	t.mtx.Unlock()
@@ -137,15 +142,15 @@ func (t *msgMgr) loadKeyValues(lst []Message) {
 
 func (t *msgMgr) batch() {
 	for {
-		var lst []Message
+		msgs := make(map[string]Message)
 		batchDuration := 1 * time.Second
 		timeout := time.After(batchDuration)
-		for len(lst) < BATCH_SIZE {
+		for len(msgs) < BATCH_SIZE {
 			select {
 			case <-timeout:
 				goto OuterLoop
 			case msg := <-t.batchCh:
-				lst = append(lst, msg)
+				msgs[msg.GetID().String()] = msg
 				break
 			case <-t.stopCh:
 				return
@@ -153,8 +158,8 @@ func (t *msgMgr) batch() {
 			}
 		}
 	OuterLoop:
-		if len(lst) != 0 {
-			t.loadKeyValues(lst)
+		if len(msgs) != 0 {
+			t.loadKeyValues(msgs)
 		}
 	}
 }

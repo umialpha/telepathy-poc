@@ -18,5 +18,5 @@ func SessionTaskResponse(sid string, cid string) string {
 }
 
 func SessionBatchKey(sid string) string {
-	return fmt.Sprintf("{%s}:batch", sid)
+	return fmt.Sprintf("{%s}:batchIds", sid)
 }

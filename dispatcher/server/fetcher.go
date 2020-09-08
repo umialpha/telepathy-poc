@@ -89,6 +89,7 @@ func (f *nsqFetcher) Start() error {
 	f.nsqConfig.MaxInFlight = f.config.MaxInFlight
 	f.nsqConfig.MsgTimeout = f.config.MsgTimeout
 	f.nsqConfig.MaxAttempts = f.config.MaxAttempts
+	f.nsqConfig.LookupdPollInterval = time.Second
 
 	f.initRedisClient()
 
@@ -190,10 +191,10 @@ type nsqFetcherConfig struct {
 
 func NewNsqFetcherConfig() *nsqFetcherConfig {
 	c := &nsqFetcherConfig{
-		MaxInFlight:         100000,
-		MsgTimeout:          60 * time.Second,
-		MaxAttempts:         10,
-		BufferLen:           1000,
+		MaxInFlight:         10000,
+		MsgTimeout:          20 * time.Second,
+		MaxAttempts:         1000,
+		BufferLen:           10020,
 		WaitDurationIfNoMsg: 1 * time.Second,
 	}
 	return c
