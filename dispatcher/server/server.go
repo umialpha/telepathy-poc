@@ -49,6 +49,22 @@ func (s *server) createFetcherIfNotExist(sid string) (Fetcher, error) {
 	return s.fetchers[sid], nil
 }
 
+func (s *server) createCollectorIfNotExists(sid string) (*taskResultCollector, error) {
+	var err error
+	s.cMtx.Lock()
+	defer s.cMtx.Unlock()
+	if _, ok := s.collectors[sid]; !ok {
+		collector := NewTaskResultCollector(sid)
+		s.collectors[sid] = collector
+		err = collector.Start()
+		if err != nil {
+			fmt.Println("Error Start collector", err)
+			return nil, err
+		}
+	}
+	return s.collectors[sid], nil
+}
+
 func (s *server) GetWrappedTask(ctx context.Context, in *pb.GetTaskRequest) (*pb.WrappedTask, error) {
 
 	// create fetcher if not exists
@@ -75,22 +91,6 @@ func (s *server) GetWrappedTask(ctx context.Context, in *pb.GetTaskRequest) (*pb
 	}
 
 	return resp, nil
-}
-
-func (s *server) createCollectorIfNotExists(sid string) (*taskResultCollector, error) {
-	var err error
-	s.cMtx.Lock()
-	defer s.cMtx.Unlock()
-	if _, ok := s.collectors[sid]; !ok {
-		collector := NewTaskResultCollector(sid)
-		s.collectors[sid] = collector
-		err = collector.Start()
-		if err != nil {
-			fmt.Println("Error Start collector", err)
-			return nil, err
-		}
-	}
-	return s.collectors[sid], nil
 }
 
 func (s *server) SendResult(ctx context.Context, in *pb.SendResultRequest) (*empty.Empty, error) {
