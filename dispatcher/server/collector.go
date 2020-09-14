@@ -30,6 +30,8 @@ func (a *taskResultCollector) writeToRedis(lst []*pb.SendResultRequest) {
 		if msg.TaskState == pb.TaskStateEnum_FINISHED {
 			pipeline.SetNX(ctx, SessionTaskKey(msg.SessionId, msg.TaskId), MSG_STATE_SUCCESS, KEY_EXPIRED_DURATION)
 			pipeline.RPush(ctx, SessionTaskResponse(msg.SessionId, msg.ClientId), msg.SerializedInnerResult)
+			//TODO https://github.com/Azure/Telepathy/issues/177
+			pipeline.SAdd(ctx, SesssionTaskSet(msg.SessionId), msg.TaskId)
 		} else {
 			pipeline.SetNX(ctx, SessionTaskKey(msg.SessionId, msg.TaskId), MSG_STATE_REQUEUE, KEY_EXPIRED_DURATION)
 		}
