@@ -120,16 +120,16 @@ func produce(topicList []string) {
 	var cnt int
 	startTime := time.Now()
 	for cnt < *msgCount {
-		hello := &pb.HelloRequest{
-			Name: fmt.Sprintf("Name-%d", cnt),
+		hello := &pb.EchoRequest{
+			Message: fmt.Sprintf("Name-%d", cnt),
 		}
 		msg, _ := proto.Marshal(hello)
 		innerTask := &pb.InnerTask{
 			SessionId:   *sessionId,
 			ClientId:    "test-client",
 			MessageId:   fmt.Sprintf("Msg-%d", cnt),
-			ServiceName: "helloworld.Greeter",
-			MethodName:  "SayHello",
+			ServiceName: "Microsoft.Telepathy.ProtoBuf.Echo",
+			MethodName:  "Echo",
 			MethodType:  pb.MethodEnum_UNARY,
 			Msg:         msg,
 		}
