@@ -107,10 +107,3 @@ func NewSimpleTimer() Timer {
 	}
 	return t
 }
-
-type TimerMsg struct {
-	TimerItem
-	msg          Message
-	caches       []Cache
-	tickDuration time.Duration
-}
