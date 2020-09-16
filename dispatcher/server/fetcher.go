@@ -21,6 +21,7 @@ var (
 	SESSION_QUEUE_CHANNEL = "SESSION_QUEUE_CHANNEL"
 	NoMessageError        = errors.New("No Message")
 	ReFreshTopicInterval  = 1 * time.Second
+	NsqMessageTimeout     = 20 * time.Second
 )
 
 func GetTopic(sessionId string, batchId string) string {
@@ -192,7 +193,7 @@ type nsqFetcherConfig struct {
 func NewNsqFetcherConfig() *nsqFetcherConfig {
 	c := &nsqFetcherConfig{
 		MaxInFlight:         10000,
-		MsgTimeout:          20 * time.Second,
+		MsgTimeout:          NsqMessageTimeout,
 		MaxAttempts:         1000,
 		BufferLen:           10020,
 		WaitDurationIfNoMsg: 1 * time.Second,

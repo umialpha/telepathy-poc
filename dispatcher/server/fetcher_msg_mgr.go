@@ -31,6 +31,7 @@ func (n *nsqTimerItem) Tick() bool {
 }
 
 func (n *nsqTimerItem) Timeout() {
+	fmt.Println("Message Timeout")
 	n.msg.Requeue(-1)
 }
 
@@ -39,8 +40,7 @@ func (n *nsqTimerItem) TickDuration() time.Duration {
 }
 
 func (n *nsqTimerItem) ExpireDuration() time.Duration {
-	fmt.Print("ExpireDuration", n.msg.ExpiredTime().Sub(n.StartTime()))
-	return n.msg.ExpiredTime().Sub(n.StartTime())
+	return NsqMessageTimeout
 }
 
 func (n *nsqTimerItem) StartTime() time.Time {
