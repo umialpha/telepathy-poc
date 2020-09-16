@@ -39,6 +39,7 @@ func (n *nsqTimerItem) TickDuration() time.Duration {
 }
 
 func (n *nsqTimerItem) ExpireDuration() time.Duration {
+	fmt.Print("ExpireDuration", n.msg.ExpiredTime().Sub(n.StartTime()))
 	return n.msg.ExpiredTime().Sub(n.StartTime())
 }
 

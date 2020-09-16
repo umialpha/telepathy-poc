@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/go-redis/redis/v8"
@@ -31,14 +32,19 @@ func (a *taskResultCollector) writeToRedis(lst []*pb.SendResultRequest) {
 			pipeline.SetNX(ctx, SessionTaskKey(msg.SessionId, msg.TaskId), MSG_STATE_SUCCESS, KEY_EXPIRED_DURATION)
 			pipeline.RPush(ctx, SessionTaskResponse(msg.SessionId, msg.ClientId), msg.SerializedInnerResult)
 			//TODO https://github.com/Azure/Telepathy/issues/177
-			pipeline.SAdd(ctx, SesssionTaskSet(msg.SessionId), msg.TaskId)
+			pipeline.SAdd(ctx, SesssionTaskSet(msg.SessionId, msg.ClientId), msg.TaskId)
 		} else {
 			pipeline.SetNX(ctx, SessionTaskKey(msg.SessionId, msg.TaskId), MSG_STATE_REQUEUE, KEY_EXPIRED_DURATION)
 		}
-		pipeline.Exec(ctx)
-
 	}
-	pipeline.Exec(ctx)
+	_, err := pipeline.Exec(ctx)
+	if err != nil {
+		fmt.Println("[writeToRedis] err", err)
+		for _, msg := range lst {
+			a.CollectAsync(msg)
+		}
+	}
+
 	return
 }
 

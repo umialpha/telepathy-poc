@@ -21,6 +21,6 @@ func SessionBatchKey(sid string) string {
 	return fmt.Sprintf("{%s}:batchIds", sid)
 }
 
-func SesssionTaskSet(sid string) string {
-	return fmt.Sprintf("{%s}:finTasks", sid)
+func SesssionTaskSet(sid string, bid string) string {
+	return fmt.Sprintf("{%s}:%s:finTasks", sid, bid)
 }
