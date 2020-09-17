@@ -23,6 +23,7 @@ type nsqTimerItem struct {
 	startTime    time.Time
 	tickDuration time.Duration
 	ch           chan Message
+	mgr          *msgMgr
 }
 
 func (n *nsqTimerItem) Tick() bool {
@@ -33,6 +34,7 @@ func (n *nsqTimerItem) Tick() bool {
 func (n *nsqTimerItem) Timeout() {
 	fmt.Println("Message Timeout")
 	n.msg.Requeue(-1)
+	n.mgr.Delete(n.ID())
 }
 
 func (n *nsqTimerItem) TickDuration() time.Duration {
@@ -70,17 +72,26 @@ func (t *msgMgr) Add(m Message) {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 	id := m.GetID().String()
-	if _, ok := t.msgs[id]; ok {
-		fmt.Println("Message Already in msgMgr", id)
-		return
-	}
+	// if _, ok := t.msgs[id]; ok {
+	// 	fmt.Println("Message Already in msgMgr", id)
+	// 	return
+	// }
 	item := &nsqTimerItem{
 		msg:          m,
 		tickDuration: 1 * time.Second,
 		ch:           t.batchCh,
+		mgr:          t,
 	}
 	t.msgs[id] = m
 	t.timer.Add(item)
+}
+
+func (t *msgMgr) Delete(id string) {
+	t.mtx.Lock()
+	defer t.mtx.Unlock()
+	delete(t.msgs, id)
+	delete(t.states, id)
+	t.timer.Delete(id)
 }
 
 func (t *msgMgr) GetState(m Message) (string, bool) {
