@@ -20,6 +20,7 @@ type Timer interface {
 	Add(TimerItem) bool
 	Delete(string)
 	Stop()
+	Size() int
 }
 
 type SimpleTimer struct {
@@ -66,6 +67,12 @@ func (st *SimpleTimer) Stop() {
 
 }
 
+func (st *SimpleTimer) Size() int {
+	st.mu.Lock()
+	defer st.mu.Unlock()
+	return len(st.items)
+}
+
 func (st *SimpleTimer) tickItem(ctx context.Context, it TimerItem) {
 	defer st.wg.Done()
 	ticker := time.NewTicker(it.TickDuration())
@@ -99,11 +106,4 @@ func NewSimpleTimer() Timer {
 		stopCh:  make(chan int),
 	}
 	return t
-}
-
-type TimerMsg struct {
-	TimerItem
-	msg          Message
-	caches       []Cache
-	tickDuration time.Duration
 }

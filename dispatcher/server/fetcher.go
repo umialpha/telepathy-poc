@@ -20,9 +20,11 @@ type Fetcher interface {
 var (
 	SESSION_QUEUE_CHANNEL = "SESSION_QUEUE_CHANNEL"
 	NoMessageError        = errors.New("No Message")
+	ReFreshTopicInterval  = 1 * time.Second
+	NsqMessageTimeout     = 20 * time.Second
 )
 
-func getTopic(sessionId string, batchId string) string {
+func GetTopic(sessionId string, batchId string) string {
 	return sessionId + "." + batchId
 }
 
@@ -88,10 +90,14 @@ func (f *nsqFetcher) Start() error {
 	f.nsqConfig.MaxInFlight = f.config.MaxInFlight
 	f.nsqConfig.MsgTimeout = f.config.MsgTimeout
 	f.nsqConfig.MaxAttempts = f.config.MaxAttempts
+	f.nsqConfig.LookupdPollInterval = time.Second
+
+	f.initRedisClient()
+
 	f.refreshTopics()
 
 	go func() {
-		ticker := time.NewTicker(1 * time.Second)
+		ticker := time.NewTicker(ReFreshTopicInterval)
 		for {
 			select {
 			case <-f.stopCh:
@@ -120,6 +126,14 @@ func (f *nsqFetcher) Stop() error {
 	return nil
 }
 
+func (f *nsqFetcher) initRedisClient() {
+	opt := &redis.ClusterOptions{
+		Addrs:    EnvGetRedisAddrs(),
+		Password: EnvGetRedisPass(), // no password set
+	}
+	f.rdb = redis.NewClusterClient(opt)
+}
+
 func (f *nsqFetcher) refreshTopics() {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
 	defer cancel()
@@ -130,7 +144,7 @@ func (f *nsqFetcher) refreshTopics() {
 	}
 	newTopics := make(map[string]string)
 	for _, batch := range batches {
-		newTopics[getTopic(f.sessionId, batch)] = getTopic(f.sessionId, batch)
+		newTopics[GetTopic(f.sessionId, batch)] = GetTopic(f.sessionId, batch)
 	}
 
 	var wg sync.WaitGroup
@@ -157,6 +171,7 @@ func (f *nsqFetcher) refreshTopics() {
 				topic:   newTopic,
 				channel: SESSION_QUEUE_CHANNEL,
 				ch:      f.msgCh,
+				msgMgr:  f.msgMgr,
 			}
 			c.AddHandler(h)
 			f.consumers[newTopic] = c
@@ -177,10 +192,10 @@ type nsqFetcherConfig struct {
 
 func NewNsqFetcherConfig() *nsqFetcherConfig {
 	c := &nsqFetcherConfig{
-		MaxInFlight:         100000,
-		MsgTimeout:          10 * time.Minute,
-		MaxAttempts:         10,
-		BufferLen:           1000,
+		MaxInFlight:         10000,
+		MsgTimeout:          NsqMessageTimeout,
+		MaxAttempts:         1000,
+		BufferLen:           10020,
 		WaitDurationIfNoMsg: 1 * time.Second,
 	}
 	return c
@@ -195,6 +210,7 @@ func NewNsqFetcher(sessionId string, config *nsqFetcherConfig) (Fetcher, error) 
 		msgMgr:    newMgr(sessionId),
 		lookupds:  EnvGetLookupds(),
 		stopCh:    make(chan int),
+		consumers: make(map[string]*nsq.Consumer),
 	}
 
 	return fetcher, nil

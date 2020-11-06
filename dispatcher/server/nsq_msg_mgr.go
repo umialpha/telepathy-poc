@@ -3,7 +3,6 @@ package server
 import (
 	"context"
 	"fmt"
-	"os"
 	"sync"
 	"time"
 
@@ -11,8 +10,11 @@ import (
 )
 
 var (
-	BATCH_CHANNEL_SIZE = 1000
-	BATCH_SIZE         = 100
+	BATCH_CHANNEL_SIZE = 100000
+	BATCH_SIZE         = 100000
+	BATCH_WORKERS      = 5
+	MSG_STATE_SUCCESS  = "success"
+	MSG_STATE_REQUEUE  = "requeue"
 )
 
 type nsqTimerItem struct {
@@ -21,6 +23,7 @@ type nsqTimerItem struct {
 	startTime    time.Time
 	tickDuration time.Duration
 	ch           chan Message
+	mgr          *msgMgr
 }
 
 func (n *nsqTimerItem) Tick() bool {
@@ -29,7 +32,9 @@ func (n *nsqTimerItem) Tick() bool {
 }
 
 func (n *nsqTimerItem) Timeout() {
+	fmt.Println("Message Timeout")
 	n.msg.Requeue(-1)
+	n.mgr.Delete(n.ID())
 }
 
 func (n *nsqTimerItem) TickDuration() time.Duration {
@@ -37,7 +42,7 @@ func (n *nsqTimerItem) TickDuration() time.Duration {
 }
 
 func (n *nsqTimerItem) ExpireDuration() time.Duration {
-	return n.msg.ExpiredTime().Sub(n.StartTime())
+	return NsqMessageTimeout
 }
 
 func (n *nsqTimerItem) StartTime() time.Time {
@@ -53,7 +58,7 @@ func (n *nsqTimerItem) ID() string {
 }
 
 type msgMgr struct {
-	sync.RWMutex
+	mtx       sync.RWMutex
 	sessionId string
 	msgs      map[string]Message
 	states    map[string]string
@@ -64,59 +69,77 @@ type msgMgr struct {
 }
 
 func (t *msgMgr) Add(m Message) {
-	t.RLock()
-	defer t.RUnlock()
+	t.mtx.Lock()
+	defer t.mtx.Unlock()
 	id := m.GetID().String()
-	if _, ok := t.msgs[id]; ok {
-		fmt.Println("Message Already in msgMgr", id)
-		return
-	}
+	// if _, ok := t.msgs[id]; ok {
+	// 	fmt.Println("Message Already in msgMgr", id)
+	// 	return
+	// }
 	item := &nsqTimerItem{
 		msg:          m,
 		tickDuration: 1 * time.Second,
 		ch:           t.batchCh,
+		mgr:          t,
 	}
 	t.msgs[id] = m
 	t.timer.Add(item)
 }
 
+func (t *msgMgr) Delete(id string) {
+	t.mtx.Lock()
+	defer t.mtx.Unlock()
+	delete(t.msgs, id)
+	delete(t.states, id)
+	t.timer.Delete(id)
+}
+
 func (t *msgMgr) GetState(m Message) (string, bool) {
-	t.RLock()
-	defer t.RUnlock()
+	t.mtx.RLock()
+	defer t.mtx.RUnlock()
 	result, ok := t.states[m.GetID().String()]
 	return result, ok
 
 }
 
-func (t *msgMgr) loadKeyValues(lst []Message) {
+func (t *msgMgr) loadKeyValues(msgs map[string]Message) {
+	t.mtx.Lock()
+	fmt.Println("loadKeyValues", len(msgs), t.timer.Size())
+	t.mtx.Unlock()
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	pipeline := t.rdb.Pipeline()
 	cmds := map[string]*redis.StringCmd{}
-	for _, m := range lst {
+	for _, m := range msgs {
 		id := m.GetID().String()
 		cmds[id] = pipeline.Get(ctx, SessionTaskKey(t.sessionId, id))
 	}
-	_, err := pipeline.Exec(ctx)
-	if err != nil {
-		fmt.Println("loadKeyValues error", err)
-		return
-	}
-	t.Lock()
+	pipeline.Exec(ctx)
+	t.mtx.Lock()
 	var requeueList []string
 	for k, v := range cmds {
 		val, err := v.Result()
-		if err == nil {
+		if _, ok := t.msgs[k]; !ok {
 			continue
 		}
-		if val == "success" {
+		if err != nil {
+			t.msgs[k].Touch()
+			continue
+		}
+		t.timer.Delete(k)
+		if val == MSG_STATE_SUCCESS {
 			t.msgs[k].Finish()
-		} else if val == "fail" {
-			t.msgs[k].Requeue(-1)
+			t.states[k] = MSG_STATE_SUCCESS
+
+		} else if val == "requeue" {
+			fmt.Println("Requeue", k)
+			t.msgs[k].Requeue(0)
 			requeueList = append(requeueList, k)
+			delete(t.msgs, k)
+
 		}
 	}
-	t.Unlock()
+	t.mtx.Unlock()
 	if len(requeueList) > 0 {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
@@ -124,52 +147,40 @@ func (t *msgMgr) loadKeyValues(lst []Message) {
 		for _, key := range requeueList {
 			pipeline.Del(ctx, SessionTaskKey(t.sessionId, key))
 		}
-	}
-	_, err = pipeline.Exec(ctx)
-	if err != nil {
-		fmt.Println("loadKeyValues error", err)
-		return
+		pipeline.Exec(ctx)
 	}
 
 }
 
 func (t *msgMgr) batch() {
 	for {
-		var lst []Message
+		msgs := make(map[string]Message)
 		batchDuration := 1 * time.Second
 		timeout := time.After(batchDuration)
-		for {
+		for len(msgs) < BATCH_SIZE {
 			select {
 			case <-timeout:
-				break
+				goto OuterLoop
 			case msg := <-t.batchCh:
-				lst = append(lst, msg)
-				if len(lst) >= BATCH_SIZE {
-					break
-				}
+				msgs[msg.GetID().String()] = msg
+				break
 			case <-t.stopCh:
 				return
 
 			}
 		}
-		if len(lst) != 0 {
-			t.loadKeyValues(lst)
+	OuterLoop:
+		if len(msgs) != 0 {
+			t.loadKeyValues(msgs)
 		}
 	}
 }
 
 func (m *msgMgr) initRedisClient() {
-	redisAddr := os.Getenv(REDIS_ADDR_KEY)
-	if redisAddr == "" {
-		redisAddr = "localhost:6379"
-
-	}
-	redisPass := os.Getenv(REDIS_PASSWORD_KEY)
-	fmt.Println("redisAddr", redisAddr, redisPass)
 
 	opt := &redis.ClusterOptions{
-		Addrs:    []string{redisAddr},
-		Password: redisPass, // no password set
+		Addrs:    EnvGetRedisAddrs(),
+		Password: EnvGetRedisPass(), // no password set
 	}
 	m.rdb = redis.NewClusterClient(opt)
 }
@@ -184,6 +195,8 @@ func newMgr(sessionId string) *msgMgr {
 		stopCh:    make(chan int),
 	}
 	m.initRedisClient()
-
+	for i := 0; i < BATCH_WORKERS; i++ {
+		go m.batch()
+	}
 	return m
 }

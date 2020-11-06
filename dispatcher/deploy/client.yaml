@@ -6,7 +6,7 @@ metadata:
   labels:
     app: dispatcher-client
 spec:
-  replicas: 4
+  replicas: 6
   selector:
     matchLabels:
       app: dispatcher-client
@@ -17,13 +17,21 @@ spec:
     spec:
       containers:
       - name: poc
-        image: r4aks.azurecr.io/dispatcher.poc:v1.9
+        image: r4aks.azurecr.io/poc.dispatcher.batch:v7
         command: ["/go/bin/client"]
-        args: ["-s", "dispatcher:50051", "-nsqd", "nsqd:4150", "-runfor", "10s", "-r", "10", "-c", "10"]
+        args: ["-s", "dispatcher:50051", "-nsqd", "nsqd:4150", "-runfor", "60s", "-r", "5", "-c", "5",] 
         ports:
         resources:
           requests:
             cpu: "3" 
-            memory: "8Gi"        
+            memory: "8Gi"
+        env:
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: redis
+              key: password
+        - name: REDIS_ADDR
+          value: "telepathy.redis.cache.windows.net:6379"
 
         
