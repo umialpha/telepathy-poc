@@ -70,16 +70,18 @@ func consumeSample() {
 	defer client.Close()
 
 	consumer, err := client.Subscribe(pulsar.ConsumerOptions{
-		Topic:            "my-topic",
-		SubscriptionName: "sub1",
-		Type:             pulsar.Shared,
+		Topic:             "test-client-2",
+		SubscriptionName:  "sub1",
+		Type:              pulsar.Shared,
+		ReceiverQueueSize: 1,
 	})
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer consumer.Close()
 
-	for i := 0; i < 10; i++ {
+	for {
+		time.Sleep(time.Second * 10)
 		msg, err := consumer.Receive(context.Background())
 		if err != nil {
 			log.Fatal(err)
@@ -97,5 +99,5 @@ func consumeSample() {
 }
 
 func main() {
-	publishBeforeSharedConsumer()
+	consumeSample()
 }

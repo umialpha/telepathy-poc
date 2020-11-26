@@ -2,12 +2,12 @@ package server
 
 import (
 	"context"
+	"errors"
 	"strconv"
 	"time"
 
 	// "flag"
 
-	"github.com/go-logr/logr"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	klogr "k8s.io/klog/v2/klogr"
@@ -30,7 +30,7 @@ const (
 // flag.Parse()
 // klog.InitFlags(nil)
 
-var logger logr.Logger = klogr.New().WithName("mertic-grpc-server")
+var logger = klogr.New().WithName("mertic-grpc-server")
 
 type server struct {
 	pb.ExternalScalerServer
@@ -39,20 +39,30 @@ type server struct {
 }
 
 func (s *server) IsActive(ctx context.Context, obj *pb.ScaledObjectRef) (*pb.IsActiveResponse, error) {
-	var qname string
-	if qname, ok := obj.ScalerMetadata[QUEUE_KEY]; !ok || qname == "" {
-		return nil, status.Error(codes.InvalidArgument, "Medadata: "+QUEUE_KEY+" Must be set and not be empty")
-	}
-	value := s.qc.IsQueueExist(qname)
-	logger.Info("IsActive", value)
+	// var qname string
+	// if qname, ok := obj.ScalerMetadata[QUEUE_KEY]; !ok || qname == "" {
+	// 	return nil, status.Error(codes.InvalidArgument, "Medadata: "+QUEUE_KEY+" Must be set and not be empty")
+	// }
+	// value := s.qc.IsQueueExist(qname)
+	// logger.Info("IsActive", value)
+	// return &pb.IsActiveResponse{
+	// 	Result: value,
+	// }, nil
 	return &pb.IsActiveResponse{
-		Result: value,
+		Result: true,
 	}, nil
 
 }
 
 func (s *server) StreamIsActive(obj *pb.ScaledObjectRef, svc pb.ExternalScaler_StreamIsActiveServer) error {
-	return nil
+	for {
+		select {
+		case <-time.Tick(time.Second * 10):
+			svc.Send(&pb.IsActiveResponse{
+				Result: true,
+			})
+		}
+	}
 }
 
 func (s *server) GetMetricSpec(ctx context.Context, obj *pb.ScaledObjectRef) (*pb.GetMetricSpecResponse, error) {
@@ -74,45 +84,50 @@ func (s *server) GetMetrics(ctx context.Context, obj *pb.GetMetricsRequest) (*pb
 	// Q * T / (N * P) < D - N
 	// W > Q * T / (P * (D - N))
 	var qname string
-	if qname, ok := obj.ScaledObjectRef.ScalerMetadata[QUEUE_KEY]; !ok || qname == "" {
+	var ok bool
+	if qname, ok = obj.ScaledObjectRef.ScalerMetadata[QUEUE_KEY]; !ok || qname == "" {
 		return nil, status.Error(codes.InvalidArgument, "Medadata: "+QUEUE_KEY+" Must be set and not be empty")
 	}
 	var parallel string
-	if parallel, ok := obj.ScaledObjectRef.ScalerMetadata[PARALLEL_KEY]; !ok || parallel == "" {
+	if parallel, ok = obj.ScaledObjectRef.ScalerMetadata[PARALLEL_KEY]; !ok || parallel == "" {
 		return nil, status.Error(codes.InvalidArgument, "Medadata: "+PARALLEL_KEY+" Must be set and not be empty")
 	}
 	var deadline string
-	if deadline, ok := obj.ScaledObjectRef.ScalerMetadata[DEADLINE_KEY]; !ok || deadline == "" {
+	if deadline, ok = obj.ScaledObjectRef.ScalerMetadata[DEADLINE_KEY]; !ok || deadline == "" {
 		return nil, status.Error(codes.InvalidArgument, "Medadata: "+DEADLINE_KEY+" Must be set and not be empty")
 	}
 	var estimatedExeTime string
-	if estimatedExeTime, ok := obj.ScaledObjectRef.ScalerMetadata[ESTIMATE_EXE_TIME_KEY]; !ok || estimatedExeTime == "" {
+	if estimatedExeTime, ok = obj.ScaledObjectRef.ScalerMetadata[ESTIMATE_EXE_TIME_KEY]; !ok || estimatedExeTime == "" {
 		return nil, status.Error(codes.InvalidArgument, "Medadata: "+estimatedExeTime+" Must be set and not be empty")
 	}
 
 	Q := s.qc.GetQueueLength(qname)
 	P, err := strconv.Atoi(parallel)
 	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, "Medadata: "+PARALLEL_KEY+" can not be decoded as Int")
+		return nil, status.Error(codes.InvalidArgument, "Medadata: "+PARALLEL_KEY+" can not be decoded as Int "+err.Error())
 	}
 	T := s.jc.GetAverageExeutionMS(qname)
 	// No Task finished yet
 	if T <= 0 {
 		v, err := strconv.Atoi(estimatedExeTime)
 		if err != nil {
-			return nil, status.Error(codes.InvalidArgument, "Medadata: "+ESTIMATE_EXE_TIME_KEY+" can not be decoded as Int")
+			return nil, status.Error(codes.InvalidArgument, "Medadata: "+ESTIMATE_EXE_TIME_KEY+" can not be decoded as Int"+err.Error())
 		}
 		T = int32(v)
 	}
 	D, err := time.Parse(time.RFC3339, deadline)
 	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, "Medadata: "+DEADLINE_KEY+" cannot be decoded as RFC3339 format")
+		return nil, status.Error(codes.InvalidArgument, "Medadata: "+DEADLINE_KEY+" cannot be decoded as RFC3339 format"+err.Error())
 	}
 	N := time.Now()
 	remainedMS := D.Sub(N).Nanoseconds() / 1000 / 1000
 	W := int64(float64(int64(Q*T)/(int64(P)*remainedMS))*1.1) + 1
 	logger.Info("GetMetrics", "Queue length", Q, "Pallelism", P, "Execution time in ms", T,
-		"Deadline", deadline, "Now", N.Format(time.RFC3339), "Remaining time", D.Sub(N).Seconds(), "Worker Number", W)
+		"Deadline", deadline, "Now", N.Format(time.RFC3339), "Remaining time", remainedMS, "Worker Number", W)
+	if W <= 0 {
+		logger.Error(errors.New("Deadline Exceeded"), "", "Deadline", deadline, "Now", N.Format(time.RFC3339))
+		return nil, status.Error(codes.Aborted, "DeadlineExceeded")
+	}
 	return &pb.GetMetricsResponse{
 		MetricValues: []*pb.MetricValue{
 			&pb.MetricValue{

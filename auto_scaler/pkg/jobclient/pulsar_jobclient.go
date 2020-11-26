@@ -15,7 +15,7 @@ import (
 
 var logger logr.Logger = klogr.New().WithName("pulsar metric client")
 
-func metricQueueName(jobid string) string {
+func MetricQueueName(jobid string) string {
 	return jobid + "-metric"
 }
 
@@ -43,7 +43,7 @@ func (c *collector) collectMetricForJob(ctx context.Context) {
 	defer client.Close()
 
 	reader, err := client.CreateReader(pulsar.ReaderOptions{
-		Topic:          metricQueueName(c.jobid),
+		Topic:          MetricQueueName(c.jobid),
 		StartMessageID: pulsar.EarliestMessageID(),
 	})
 	if err != nil {

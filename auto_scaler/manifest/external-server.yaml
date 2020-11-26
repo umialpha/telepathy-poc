@@ -1,0 +1,43 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: external-server
+  labels:
+    app: external-server
+spec:
+  ports:
+  - port: 50051
+    targetPort: 50051
+  selector:
+    app: external-server
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: external-server
+  labels:
+    app: external-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: external-server
+  template:
+    metadata:
+      labels:
+        app: external-server
+    spec:
+      containers:
+      - name: poc
+        image: r4aks.azurecr.io/auto-scaler:v2
+        command: ["/go/bin/server"]
+        args: ["-p", "50051"]
+        ports:
+        - containerPort: 50051
+        env:
+        - name: PULSAR_ADDR
+          value: "pulsar://40.119.250.46:6650"
+        - name: PULSAR_ADMIN_ADDR
+          value: "http://40.119.250.46"
+        

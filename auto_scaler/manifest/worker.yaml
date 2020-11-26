@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker
+  labels:
+    app: worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: worker
+  template:
+    metadata:
+      labels:
+        app: worker
+    spec:
+      containers:
+      - name: poc
+        image: r4aks.azurecr.io/auto-scaler:v2
+        command: ["/go/bin/test-worker"]
+        args: ["-qn", "keda-test-queue-8", "-et", "10000", "-pulsar", "pulsar://40.119.250.46:6650", "-p", "10"]
+        env:
+        - name: PULSAR_ADDR
+          value: "pulsar://40.119.250.46:6650"
+        - name: PULSAR_ADMIN_ADDR
+          value: "http://40.119.250.46"
+      imagePullSecrets:
+      - name: regcred
+      # nodeSelector:
+      #   type: virtual-kubelet
+      # tolerations:
+      # - key: virtual-kubelet.io/provider
+      #   operator: Exists
+      # - key: azure.com/aci
+      #   effect: NoSchedule
+        

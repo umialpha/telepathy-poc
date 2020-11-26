@@ -35,7 +35,7 @@ func TestCollectorCollectMetricForJob(t *testing.T) {
 	defer client.Close()
 
 	producer, err := client.CreateProducer(pulsar.ProducerOptions{
-		Topic: metricQueueName(jobid),
+		Topic: MetricQueueName(jobid),
 	})
 	if err != nil {
 		log.Fatal(err)
@@ -74,7 +74,7 @@ func TestGetAverageExeutionMS(t *testing.T) {
 	}
 	defer client.Close()
 	producer, err := client.CreateProducer(pulsar.ProducerOptions{
-		Topic: metricQueueName(jobid),
+		Topic: MetricQueueName(jobid),
 	})
 	if err != nil {
 		log.Fatal(err)

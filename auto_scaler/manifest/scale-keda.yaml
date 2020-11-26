@@ -1,0 +1,25 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: scaler
+spec:
+  scaleTargetRef:
+    name: worker
+  minReplicaCount: 1
+  maxReplicaCount: 1000
+  advanced:
+    horizontalPodAutoscalerConfig:
+      behavior:
+        scaleDown:
+          stabilizationWindowSeconds: 60
+  triggers:
+    - type: external
+      metadata:
+        scalerAddress: external-server.default:50051
+        estimate_exe_time: "10000"
+        parallel_key: "10"
+        deadline_key: "2020-11-12T17:35:04+08:00"
+        queue_key: "keda-test-queue-8"
+        
+
+

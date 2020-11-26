@@ -1,0 +1,2 @@
+obj/Debug/netcoreapp3.1/Hello.cs \
+obj/Debug/netcoreapp3.1/HelloGrpc.cs: ../../protos/hello.proto

@@ -19,7 +19,7 @@ metadata:
   labels:
     app: dispatcher
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: dispatcher
@@ -30,15 +30,15 @@ spec:
     spec:
       containers:
       - name: poc
-        image: r4aks.azurecr.io/dispatcher.poc.inmemory:v1.0
+        image: telerepo.azurecr.io/integration-disp:v0
         command: ["/go/bin/cmd"]
         args: ["-lookupd", "nsqlookupd-0.nsqlookupd:4161 nsqlookupd-1.nsqlookupd:4161 nsqlookupd-2.nsqlookupd:4161", "-p", "50051"]
         ports:
         - containerPort: 50051
         resources:
           requests:
-            cpu: "14" 
-            memory: "8Gi" 
+            cpu: "1" 
+            memory: "1Gi" 
         env:
         - name: REDIS_PASSWORD
           valueFrom:
@@ -46,5 +46,5 @@ spec:
               name: redis
               key: password
         - name: REDIS_ADDR
-          value: "telepathy.redis.cache.windows.net:6379"
+          value: "v2test.redis.cache.windows.net:6379"
           

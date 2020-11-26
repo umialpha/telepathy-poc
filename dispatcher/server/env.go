@@ -40,7 +40,7 @@ func EnvGetRedisAddrs() []string {
 func EnvGetRedisPass() string {
 	password := os.Getenv(ENV_REDIS_PASSWORD)
 	if password == "" {
-		password = "" // "wQGnvnmyAtm49nmuOMz2nNoyHv0sdvCumVgTkE4qB6Q=" //
+		password = ""  //
 	}
 	return password
 }

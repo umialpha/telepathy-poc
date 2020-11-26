@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "dgSpecHash": "vb3x762HA1Bl568oPq6+X4SMdfd2z7HgQesRn9sWQe5WpnEVIvjQScDIWAOKM4jOGxJaTfQoB/3eD7oAAZTjyw==",
+  "success": true,
+  "projectFilePath": "/Users/lei/roy/gits/telepathy-poc/grpc_errors/csharp/server/server.csproj",
+  "expectedPackageFiles": [
+    "/Users/lei/.nuget/packages/google.protobuf/3.12.4/google.protobuf.3.12.4.nupkg.sha512",
+    "/Users/lei/.nuget/packages/grpc/2.30.0/grpc.2.30.0.nupkg.sha512",
+    "/Users/lei/.nuget/packages/grpc.core/2.30.0/grpc.core.2.30.0.nupkg.sha512",
+    "/Users/lei/.nuget/packages/grpc.core.api/2.30.0/grpc.core.api.2.30.0.nupkg.sha512",
+    "/Users/lei/.nuget/packages/grpc.tools/2.30.0/grpc.tools.2.30.0.nupkg.sha512",
+    "/Users/lei/.nuget/packages/system.memory/4.5.3/system.memory.4.5.3.nupkg.sha512"
+  ],
+  "logs": []
+}

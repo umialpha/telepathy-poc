@@ -12,8 +12,10 @@ require (
 	github.com/modern-go/reflect2 v1.0.1 // indirect
 	github.com/stretchr/testify v1.4.0
 	golang.org/x/lint v0.0.0-20190313153728-d0100b6bd8b3 // indirect
+	gonum.org/v1/gonum v0.8.1
 	google.golang.org/grpc v1.33.1
 	honnef.co/go/tools v0.0.0-20190523083050-ea95bdfd59fc // indirect
+	k8s.io/klog v1.0.0
 	k8s.io/klog/v2 v2.4.0
 
 )
